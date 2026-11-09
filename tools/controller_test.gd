@@ -63,9 +63,9 @@ func _make_rito() -> Rito:
 func _test_coyote_valid() -> void:
 	var floor_body := _add_floor()
 	var rito := _make_rito()
-	rito.global_position = Vector3(0, 0.1, 0)
-	await physics_frame
-	await physics_frame
+	rito.global_position = Vector3(0, 0.01, 0)
+	for i in 5:
+		await physics_frame
 	floor_body.queue_free()
 	await process_frame
 	# 3 frames en el aire: todavia dentro de la ventana coyote.
@@ -85,9 +85,9 @@ func _test_coyote_valid() -> void:
 func _test_coyote_expired() -> void:
 	var floor_body := _add_floor()
 	var rito := _make_rito()
-	rito.global_position = Vector3(0, 0.1, 0)
-	await physics_frame
-	await physics_frame
+	rito.global_position = Vector3(0, 0.01, 0)
+	for i in 5:
+		await physics_frame
 	floor_body.queue_free()
 	await process_frame
 	for i in 10:
@@ -215,9 +215,9 @@ func _test_fov_walk() -> void:
 func _test_land_dip_active() -> void:
 	var floor_body := _add_floor()
 	var rito := _make_rito()
-	rito.global_position = Vector3(0, 0.1, 0)
-	await physics_frame
-	await physics_frame
+	rito.global_position = Vector3(0, 0.01, 0)
+	for i in 5:
+		await physics_frame
 	Input.action_press("jump")
 	await physics_frame
 	Input.action_release("jump")
@@ -228,7 +228,8 @@ func _test_land_dip_active() -> void:
 		if rito.is_on_floor() and rito.velocity.y <= 0.0 and i > 5:
 			landed = true
 			break
-	_check(landed and float(rito.get("_land_dip")) > 0.0, "dip: activo en el frame de aterrizaje")
+	var dip_val = rito.get("_land_dip")
+	_check(landed and dip_val != null and dip_val > 0.0, "dip: activo en el frame de aterrizaje")
 	rito.queue_free()
 	floor_body.queue_free()
 	await process_frame
@@ -238,9 +239,9 @@ func _test_land_dip_active() -> void:
 func _test_land_dip_decay() -> void:
 	var floor_body := _add_floor()
 	var rito := _make_rito()
-	rito.global_position = Vector3(0, 0.1, 0)
-	await physics_frame
-	await physics_frame
+	rito.global_position = Vector3(0, 0.01, 0)
+	for i in 5:
+		await physics_frame
 	Input.action_press("jump")
 	await physics_frame
 	Input.action_release("jump")
@@ -250,7 +251,8 @@ func _test_land_dip_decay() -> void:
 			break
 	for i in 20:
 		await physics_frame
-	_check(is_zero_approx(float(rito.get("_land_dip"))), "dip: decae a cero tras 20 frames")
+	var dip_val = rito.get("_land_dip")
+	_check(dip_val != null and is_zero_approx(dip_val), "dip: decae a cero tras 20 frames")
 	rito.queue_free()
 	floor_body.queue_free()
 	await process_frame
@@ -260,9 +262,9 @@ func _test_land_dip_decay() -> void:
 func _test_normal_jump() -> void:
 	var floor_body := _add_floor()
 	var rito := _make_rito()
-	rito.global_position = Vector3(0, 0.1, 0)
-	await physics_frame
-	await physics_frame
+	rito.global_position = Vector3(0, 0.01, 0)
+	for i in 5:
+		await physics_frame
 	Input.action_press("jump")
 	await physics_frame
 	Input.action_release("jump")
@@ -273,18 +275,18 @@ func _test_normal_jump() -> void:
 	await process_frame
 
 
-## Sin doble salto: en el aire sin coyote ni buffer, jump no hace nada.
+## Sin doble salto: en el aire tras un salto, jump no vuelve a impulsar.
 func _test_no_double_jump() -> void:
 	var floor_body := _add_floor()
 	var rito := _make_rito()
-	rito.global_position = Vector3(0, 0.1, 0)
-	await physics_frame
-	await physics_frame
+	rito.global_position = Vector3(0, 0.01, 0)
+	for i in 5:
+		await physics_frame
 	Input.action_press("jump")
 	await physics_frame
 	Input.action_release("jump")
-	# Esperar a estar en el aire (ya pasaron el coyote).
-	for i in 15:
+	# 10 frames en el aire: el coyote ya se consumio con el primer salto.
+	for i in 10:
 		await physics_frame
 	var vel_before := rito.velocity.y
 	Input.action_press("jump")

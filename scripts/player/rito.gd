@@ -68,6 +68,16 @@ const PUSH_DECAY := 8.0
 ## Distancia horizontal recorrida entre un paso y otro, en metros.
 const STEP_DISTANCE := 2.1
 
+## Game feel del controlador: coyote, buffer, camara y FOV.
+const COYOTE_TIME := 0.12
+const JUMP_BUFFER := 0.12
+const CAMERA_SMOOTH := 18.0
+const FOV_WALK := 68.0
+const FOV_SPRINT := 74.0
+const FOV_LERP := 8.0
+const LAND_DIP_AMOUNT := 0.06
+const LAND_DIP_DECAY := 0.3
+
 signal died
 
 var combatant: Node
@@ -114,6 +124,10 @@ var _ragdoll_active := false
 var _push_velocity := Vector3.ZERO
 var _dodge_ready_at := 0.0
 var _was_on_floor := true
+var _coyote_until := 0.0
+var _jump_buffered_at := -1.0
+var _land_dip := 0.0
+var _camera_smooth_pos := Vector3.INF
 
 ## Nodo Feel del game feel (shake/hit-stop), o null en los tests que no lo montan.
 var feel: Node
@@ -230,19 +244,26 @@ func _physics_process(delta: float) -> void:
 	velocity.z += _push_velocity.z
 	_push_velocity = _push_velocity.lerp(Vector3.ZERO, clampf(PUSH_DECAY * delta, 0.0, 1.0))
 
-	# Gravedad
+	# Gravedad, coyote time y jump buffer.
+	if Input.is_action_just_pressed("jump"):
+		_jump_buffered_at = _now()
 	if is_on_floor():
+		_coyote_until = _now() + COYOTE_TIME
 		velocity.y = 0.0
-		if Input.is_action_just_pressed("jump"):
-			velocity.y = JUMP_VELOCITY
 	else:
 		velocity.y -= GRAVITY * delta
+	var can_jump := is_on_floor() or _now() < _coyote_until
+	var wants_jump := Input.is_action_just_pressed("jump") or (_jump_buffered_at > 0.0 and _now() - _jump_buffered_at < JUMP_BUFFER)
+	if can_jump and wants_jump:
+		velocity.y = JUMP_VELOCITY
+		_coyote_until = 0.0
+		_jump_buffered_at = -1.0
 
 	move_and_slide()
 	_check_landing()
 	_update_steps(delta)
 	_update_model(delta, direction)
-	_update_camera()
+	_update_camera(delta)
 
 
 ## El aterrizaje de un salto se ve: el cuerpo se agacha y vuelve. Se dispara al tocar el
@@ -251,6 +272,7 @@ func _check_landing() -> void:
 	var on_floor := is_on_floor()
 	if on_floor and not _was_on_floor:
 		play_one_shot(_resolved_land, 0.45, PRIORITY_LAND)
+		_land_dip = LAND_DIP_AMOUNT
 	_was_on_floor = on_floor
 
 
@@ -299,7 +321,7 @@ func set_night(is_night: bool) -> void:
 		torch.visible = is_night
 
 
-func _update_camera() -> void:
+func _update_camera(delta: float) -> void:
 	if camera == null or camera_pitch == null:
 		return
 	var pivot := camera_pitch.get_parent() as Node3D
@@ -311,7 +333,17 @@ func _update_camera() -> void:
 	var final_position := desired
 	if not hit.is_empty():
 		final_position = pivot.global_position + (hit.position - pivot.global_position) * 0.85
-	camera.global_position = final_position + _shake_offset()
+	var target := final_position + Vector3(0, -_land_dip, 0)
+	if _camera_smooth_pos == Vector3.INF:
+		_camera_smooth_pos = target
+	else:
+		_camera_smooth_pos = _camera_smooth_pos.lerp(target, 1.0 - exp(-CAMERA_SMOOTH * delta))
+	camera.global_position = _camera_smooth_pos + _shake_offset()
+	_land_dip = move_toward(_land_dip, 0.0, LAND_DIP_DECAY * delta)
+	var planar_speed := Vector2(velocity.x, velocity.z).length()
+	var sprinting := Input.is_action_pressed("sprint") and planar_speed > WALK_SPEED
+	var fov_target := FOV_SPRINT if sprinting else FOV_WALK
+	camera.fov = lerpf(camera.fov, fov_target, 1.0 - exp(-FOV_LERP * delta))
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -486,6 +518,10 @@ func respawn(at: Vector3) -> void:
 	_push_velocity = Vector3.ZERO
 	_dead = false
 	_was_on_floor = true
+	_coyote_until = 0.0
+	_jump_buffered_at = -1.0
+	_land_dip = 0.0
+	_camera_smooth_pos = Vector3.INF
 	if combatant != null:
 		combatant.heal_full(2.0)
 	_lock_priority = 0

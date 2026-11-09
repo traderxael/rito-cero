@@ -45,6 +45,9 @@ WASD mover · ratón mirar · clic tajo · clic derecho golpe fuerte · 1-5 arma
 F esquiva · C silbar al moloso · E comer · J tablero · T tecnología ·
 I inventario · B arsenal · Q calidad · Esc pausa.
 
+Game feel del controlador: coyote time 0,12 s, buffer de salto 0,12 s, cámara
+suavizada, FOV 68/74 al caminar/correr y land dip al aterrizar.
+
 ## Verificación (esta sesión, 2026-11-09)
 
 - Headless, sin errores de parseo; `main.tscn` corre 120 frames sin errores de
@@ -53,7 +56,7 @@ I inventario · B arsenal · Q calidad · Esc pausa.
   **16/16**, `feel_test` **27/27**, `dog_follow_test` **6/6**, `audio_test`
   **26/26**, `mission_test` **33/33**, `pause_test` **10/10**, `pickup_test`
   **8/8**, `boss_test` **15/15**, `cave_test` **17/17**, `input_map_test`
-  **6/6**, `slave_test` **7/7**.
+  **6/6**, `slave_test` **7/7**, `controller_test` **12/12**.
 - El crítico se decide con el estado **anterior** al golpe: el primer tajo no
   es crítico; el siguiente, si el objetivo quedó aturdido, sí.
 - La esquiva ya no suma dos veces el impulso; el STUN corta el tajo del
