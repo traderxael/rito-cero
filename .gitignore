@@ -1,0 +1,21 @@
+# Godot 4+ specific ignores
+.godot/
+/android/
+
+# Build output
+/build/
+
+# Dependencias de las herramientas de verificacion web (playwright-core)
+/node_modules/
+
+# Copias temporales de las GDExtension que deja Godot al reimportar
+addons/**/~*
+
+# Respaldos locales y artefactos de sesiones
+*.bak
+.superpowers/
+tools/_*_probe.gd.uid
+
+# Assets fuente que el juego no usa (se conservan en local)
+/Unity/
+/Unreal Engine/

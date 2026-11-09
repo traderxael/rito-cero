@@ -1,0 +1,39 @@
+flowchart LR
+    subgraph NUCLEO["PROYECTO 1 · nucleo misiones y progreso"]
+        C["Sistema de misiones"]
+        C -->|"masacre de bandidos"| D["Objetivo:<br>zona de bandidos en el campo"]
+        C -->|"defensa de ciudad"| E["Objetivo:<br>aguantar oleadas en la ciudad"]
+        C -->|"eventos de mundo"| F["Campamento aparece<br>o ciudad bajo asedio"]
+        D --> G["Completar mision"]
+        E --> G
+        F --> G
+        G --> H["Recompensas"]
+        H --> I["Comida y agua<br>curan + poco XP"]
+        H --> J["Monedas romanas<br>denarios / sestercios"]
+        H --> K["Armas romanas<br>equipables"]
+        H --> L["Botin absurdo<br>pizza · helado · sal..."]
+        H --> N["XP de mision"]
+        N --> O["Subir de nivel"]
+        O --> P["Mejores recompensas<br>(rango de botin)"]
+        P --> O
+        I --> Q["Curacion con comida y agua"]
+        J --> R["Arbol de tecnologia<br>anacronica"]
+        R --> S["Mas agua · mas comida<br>fabricar sal · ..."]
+        R --> K
+    end
+
+    subgraph HISTORIA["Marco narrativo (proyecto 3)"]
+        A["Rito renace<br>en la antigua Roma"] --> B["Tres bodas:<br>1 debil · 2 soldado · 3 noble"]
+        B --> M["Emperador de Roma<br>(meta final)"]
+    end
+
+    subgraph PROYECTOS["Proyectos 2 y 3"]
+        T["Proyecto 2 · las 3 esposas<br>casa · negocios · arcos"] --> B
+        U["Proyecto 3 · escalera al imperio<br>rango · historia · final"] --> M
+    end
+
+    A --> C
+
+    style HISTORIA fill:#1e1e2e,stroke:#a6adc8,color:#cdd6f4
+    style NUCLEO fill:#181825,stroke:#f9e2af,color:#cdd6f4
+    style PROYECTOS fill:#1e1e2e,stroke:#89b4fa,color:#cdd6f4
