@@ -8,7 +8,7 @@ const HOSTILE := preload("res://scripts/npc/hostile_npc.gd")
 const BanditCampScript := preload("res://scripts/missions/bandit_camp.gd")
 const CombatantScript := preload("res://scripts/combat/combatant.gd")
 
-const EXPECTED_CHECKS := 22
+const EXPECTED_CHECKS := 27
 
 var _failures := 0
 var _checks_run := 0
@@ -20,6 +20,7 @@ func _init() -> void:
 	await _test_spawn_bandit_kind_y_mutadores()
 	await _test_hondero()
 	await _test_bruto()
+	await _test_corredor()
 	if _checks_run != EXPECTED_CHECKS:
 		_failures += 1
 		print("FAIL solo se ejecutaron ", _checks_run, " de ", EXPECTED_CHECKS, " checks")
@@ -185,3 +186,26 @@ func _test_bruto() -> void:
 	stub.queue_free()
 	delante.queue_free()
 	detras.queue_free()
+
+
+func _test_corredor() -> void:
+	await process_frame
+	_make_floor()
+	var stub := _make_player_stub(Vector3(10, 1.4, 0))
+	var corredor: CharacterBody3D = BanditCampScript.spawn_bandit(root, Vector3.ZERO, 0.0, null, stub, "runner")
+	_check(is_equal_approx(float(corredor.get("max_health")), 30.0), "el corredor tiene 30 de vida")
+	_check(is_equal_approx(float(corredor.get("chase_speed")), 4.6), "el corredor persigue a 4,6")
+	var directa := stub.global_position - corredor.global_position
+	directa.y = 0.0
+	directa = directa.normalized()
+	var flanqueo: Vector3 = corredor.call("_flat_direction_to_target")
+	_check(float(directa.dot(flanqueo)) < 0.9, "a 10 m el corredor entra en diagonal")
+	stub.global_position = corredor.global_position + directa * 4.0
+	var directo: Vector3 = corredor.call("_flat_direction_to_target")
+	_check(float(directa.dot(directo)) > 0.95, "a 4 m el corredor va directo")
+	corredor.call("_try_attack")
+	var primero := float(corredor.get("_swing_until"))
+	corredor.call("_try_attack")
+	_check(is_equal_approx(float(corredor.get("_swing_until")), primero), "el segundo ataque no entra en el cooldown")
+	corredor.queue_free()
+	stub.queue_free()
