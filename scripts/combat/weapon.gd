@@ -284,6 +284,22 @@ static func make_hispaniens() -> ArrayMesh:
 	return MeshFactoryScript._merge(parts)
 
 
+## La piedra del hondero: una esfera pequena y gris, sin astil.
+static func make_stone() -> ArrayMesh:
+	var parts: Array = []
+	var stone := SphereMesh.new()
+	stone.radius = 0.09
+	stone.height = 0.18
+	stone.radial_segments = 6
+	stone.rings = 3
+	parts.append({
+		"mesh": stone,
+		"transform": Transform3D(Basis(), Vector3.ZERO),
+		"color": Color(0.45, 0.43, 0.40),
+	})
+	return MeshFactoryScript._merge(parts)
+
+
 ## Pilum: astil de madera con vastago de hierro y punta piramidal. El agarre esta en el
 ## origen de la malla, asi que el astil sale de la mano hacia delante (+Z).
 static func make_pilum() -> ArrayMesh:

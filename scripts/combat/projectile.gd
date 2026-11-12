@@ -15,6 +15,9 @@ const WeaponScript := preload("res://scripts/combat/weapon.gd")
 ## Terreno (1) y cuerpos de NPC (4). El jugador (2) queda fuera: el pilum sale de el.
 const DEFAULT_MASK := 1 | 4
 
+## Malla opcional: el hondero lanza una piedra en vez del pilum.
+var _visual: Mesh = null
+
 ## Tiempo que el pilum se queda clavado en el terreno antes de retirarse solo.
 const STUCK_SECONDS := 2.5
 
@@ -31,12 +34,13 @@ var _stuck_until := 0.0
 
 ## La mano es el punto de partida, no el centro del pilum: el astil sale de la mano hacia
 ## delante, igual que en la mano de Rito.
-func setup(hand_position: Vector3, direction: Vector3, damage: float, speed: float, max_distance: float, mask: int = DEFAULT_MASK) -> void:
+func setup(hand_position: Vector3, direction: Vector3, damage: float, speed: float, max_distance: float, mask: int = DEFAULT_MASK, visual: Mesh = null) -> void:
 	_direction = direction.normalized()
 	_damage = damage
 	_speed = speed
 	_max_distance = max_distance
 	_mask = mask
+	_visual = visual
 	_build_visual()
 	_orient(_direction)
 	global_position = hand_position + _direction * _half_length
@@ -46,7 +50,7 @@ func setup(hand_position: Vector3, direction: Vector3, damage: float, speed: flo
 ## de modo que el nodo del proyectil esta en el centro del astil y la punta queda a media
 ## longitud por delante.
 func _build_visual() -> void:
-	var mesh := WeaponScript.make_pilum()
+	var mesh: Mesh = _visual if _visual != null else WeaponScript.make_pilum()
 	var aabb := mesh.get_aabb()
 	_half_length = aabb.size.z * 0.5
 
