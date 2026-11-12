@@ -7,7 +7,7 @@ extends SceneTree
 ## El recuento convierte en fallo cualquier caso que no llegue a ejecutarse: un error
 ## dentro de un test aborta el resto sin lanzar su assert, y el arnes se quedaria en
 ## verde con los checks pendientes nunca corridos.
-const EXPECTED_CHECKS := 317
+const EXPECTED_CHECKS := 320
 
 ## Ruta del guardado en disco (escritorio y headless). El test la borra al empezar y
 ## al terminar para que dos ejecuciones seguidas midan lo mismo.
@@ -68,6 +68,7 @@ func _init() -> void:
 	_test_sal_craft_and_use()
 	_test_tech_purchase_gate()
 	_test_gladius_templado()
+	_test_spatha_sidegrade()
 	_test_armeria_unlocks()
 	await _test_tech_tree()
 	_test_save_roundtrip_system()
@@ -427,6 +428,16 @@ func _test_gladius_templado() -> void:
 	sistema.coins = 250
 	sistema.buy_tech("armeria3")
 	_check(is_equal_approx(sistema.gladius_damage_mult(), 1.3), "con la armeria 3 el multiplicador es 1,3")
+
+
+## La spatha es el sidegrade del gladius: golpea mucho mas fuerte pero tarda
+## 1,05 s entre tajos, asi que el gladius gana por cadencia y combo.
+func _test_spatha_sidegrade() -> void:
+	var spatha: Dictionary = Weapon.get_weapon(Weapon.index_of("spatha"))
+	var gladius: Dictionary = Weapon.get_weapon(Weapon.index_of("gladius"))
+	_check(is_equal_approx(float(spatha["cooldown"]), 1.05), "la spatha tarda 1,05 s entre golpes")
+	_check(is_equal_approx(float(gladius["cooldown"]), 0.55), "el gladius sigue en 0,55 s")
+	_check(Weapon.unlock_tech("spatha").is_empty(), "la spatha sigue gratis")
 
 
 ## El guardado del sistema: siete claves, sin mision activa, y apply_save restaura

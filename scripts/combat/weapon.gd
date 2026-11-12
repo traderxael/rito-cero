@@ -65,7 +65,7 @@ const CATALOG: Array = [
 		"mode": MODE_MELEE,
 		"damage": 58.0,
 		"reach": 2.6,
-		"cooldown": 0.80,
+		"cooldown": 1.05,
 		"window_open": 0.25,
 		"window_close": 0.55,
 		"radius": 0.70,
