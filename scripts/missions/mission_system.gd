@@ -199,7 +199,7 @@ func complete_mission() -> void:
 	current_streak += 1
 	best_streak = maxi(best_streak, current_streak)
 	streak_changed.emit(current_streak, best_streak)
-	_cooldowns[str(mision.get("id", ""))] = _now() + COOLDOWN_SECONDS
+	_cooldowns[str(mision.get("id", ""))] = _now_unix() + COOLDOWN_SECONDS
 	mission_completed.emit(mision, recompensas)
 
 
@@ -211,7 +211,7 @@ func fail_mission() -> void:
 	_active = {}
 	_restore_ambient()
 	_reset_streak()
-	_cooldowns[str(mision.get("id", ""))] = _now() + COOLDOWN_SECONDS
+	_cooldowns[str(mision.get("id", ""))] = _now_unix() + COOLDOWN_SECONDS
 	mission_failed.emit(mision)
 
 
@@ -223,7 +223,7 @@ func abandon_mission() -> void:
 	_active = {}
 	_restore_ambient()
 	_reset_streak()
-	_cooldowns[str(mision.get("id", ""))] = _now() + COOLDOWN_SECONDS
+	_cooldowns[str(mision.get("id", ""))] = _now_unix() + COOLDOWN_SECONDS
 	mission_abandoned.emit(mision)
 
 
@@ -320,7 +320,8 @@ func gladius_damage_mult() -> float:
 
 
 ## Guardado de progresion: siete claves y NUNCA la mision activa (recargar a media
-## mision la pierde, y eso es diseno).
+## mision la pierde, y eso es diseno). Los cooldowns van como tiempo unix absoluto:
+## sobreviven a la recarga y expiran aunque el juego esté cerrado.
 func current_save() -> Dictionary:
 	return {
 		"version": SaveGame.VERSION,
@@ -331,16 +332,20 @@ func current_save() -> Dictionary:
 		"tech": tech.duplicate(),
 		"best_streak": best_streak,
 		"current_streak": current_streak,
+		"cooldowns": _cooldowns.duplicate(),
 	}
 
 
 ## Restaura un guardado (JSON plano; los ints llegan como float, se usa int()).
-## Con {} empieza de cero en el nivel 1. Limpia mision activa y cooldowns.
+## Con {} empieza de cero en el nivel 1. Limpia mision activa y restaura los
+## cooldowns que aun no expiraron (tiempo unix: sobreviven a la recarga y
+## avanzan con el juego cerrado). Un save viejo sin la clave queda sin
+## cooldowns, y un valor de tipo erroneo degrada a vacio.
 ## Al terminar emite xp/coins/inventory/streak para que el HUD refleje el nivel
 ## cargado al instante (antes quedaba en "Nv 1" hasta la siguiente XP).
 func apply_save(data: Dictionary) -> void:
 	_active = {}
-	_cooldowns.clear()
+	_restore_cooldowns(data.get("cooldowns", {}))
 	_restore_ambient()
 	xp = maxi(0, _int_or(data.get("xp", 0), 0))
 	level = clampi(_int_or(data.get("level", 1), 1), 1, MAX_LEVEL)
@@ -431,7 +436,27 @@ func _reset_streak() -> void:
 
 
 func _in_cooldown(id: String) -> bool:
-	return float(_cooldowns.get(id, 0.0)) > _now()
+	return float(_cooldowns.get(id, 0.0)) > _now_unix()
+
+
+## Restaura los cooldowns de un guardado: solo los que aun no expiraron. Sin la
+## clave, con tipo erroneo o con timestamps pasados, queda sin cooldowns.
+func _restore_cooldowns(raw: Variant) -> void:
+	_cooldowns.clear()
+	if typeof(raw) != TYPE_DICTIONARY:
+		return
+	var ahora := _now_unix()
+	for id in raw:
+		var fin := _float_or(raw[id], 0.0)
+		if fin > ahora:
+			_cooldowns[str(id)] = fin
+
+
+## Como _int_or, para floats: un valor que no sea numero degrada al fallback.
+func _float_or(value: Variant, fallback: float) -> float:
+	if typeof(value) == TYPE_INT or typeof(value) == TYPE_FLOAT:
+		return float(value)
+	return fallback
 
 
 ## Pausa los hostiles ambientales no-mision a mas de 50 m: al iniciar la mision no
@@ -455,3 +480,10 @@ func _restore_ambient() -> void:
 
 func _now() -> float:
 	return float(Time.get_ticks_msec()) / 1000.0
+
+
+## Reloj unix (segundos desde epoch): el que usan los cooldowns, porque los
+## ticks se reinician al cerrar el juego y un cooldown guardado en ticks no
+## sobreviviria a la recarga.
+func _now_unix() -> float:
+	return float(Time.get_unix_time_from_system())
