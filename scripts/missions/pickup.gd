@@ -14,14 +14,18 @@ const PICKUP_RADIUS := 0.6
 
 var item_id := ""
 var amount := 1
+var quest := false
 var _t := 0.0
 var _mesh: MeshInstance3D
 
 
 ## Llamar ANTES de add_child: _ready monta la malla y el color segun el id.
-func setup(p_id: String, p_amount: int) -> void:
+## Si quest es true, al recoger no se entrega a Progression: solo se emite
+## collected, para que la mision de recoleccion lleve su propio contador.
+func setup(p_id: String, p_amount: int, p_quest := false) -> void:
 	item_id = p_id
 	amount = p_amount
+	quest = p_quest
 
 
 func _ready() -> void:
@@ -58,9 +62,10 @@ func _process(delta: float) -> void:
 
 
 func _on_body_entered(_body: Node3D) -> void:
-	var prog := get_tree().get_first_node_in_group("progression")
-	if prog != null:
-		prog.call("apply_loot", {item_id: amount})
+	if not quest:
+		var prog := get_tree().get_first_node_in_group("progression")
+		if prog != null:
+			prog.call("apply_loot", {item_id: amount})
 	collected.emit(item_id, amount)
 	var sfx := get_tree().get_first_node_in_group("sfx")
 	if sfx != null:
@@ -82,4 +87,6 @@ func _color_for(id: String) -> Color:
 			return Color(0.75, 0.85, 0.95)
 		"sal":
 			return Color(0.92, 0.92, 0.88)
+		"suministro":
+			return Color(0.95, 0.75, 0.30)
 	return Color(0.9, 0.9, 0.9)

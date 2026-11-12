@@ -670,6 +670,8 @@ func _refresh_mission_label() -> void:
 		_mission_label.text = "Oleada %d/3" % _defense_wave(_mission_current)
 	elif tipo == "escort":
 		_mission_label.text = "Escolta: sigue al aliado"
+	elif tipo == "collect":
+		_mission_label.text = "Provisiones: %d/6" % _mission_current
 	else:
 		_mission_label.text = "Bandidos restantes: %d" % maxi(_mission_goal - _mission_current, 0)
 
