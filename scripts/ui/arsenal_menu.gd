@@ -324,21 +324,10 @@ func _on_dim_input(event: InputEvent) -> void:
 		close()
 
 
+## La tecla Tab/B la escucha el coordinador de menus (main.gd); aqui quedan los
+## numeros 1-5 y la rueda del raton, que solo cuentan con el panel abierto.
 func _input(event: InputEvent) -> void:
-	if event.is_action_pressed("arsenal_menu"):
-		if _open:
-			close()
-		else:
-			open()
-		get_viewport().set_input_as_handled()
-		return
-
 	if not _open:
-		return
-
-	if event.is_action_pressed("ui_cancel"):
-		close()
-		get_viewport().set_input_as_handled()
 		return
 
 	for i in WeaponScript.count():

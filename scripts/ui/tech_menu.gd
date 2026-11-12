@@ -274,11 +274,4 @@ func _on_dim_input(event: InputEvent) -> void:
 		close()
 
 
-func _input(event: InputEvent) -> void:
-	if event.is_action_pressed("tech_tree"):
-		toggle()
-		get_viewport().set_input_as_handled()
-		return
-	if _open and event.is_action_pressed("ui_cancel"):
-		close()
-		get_viewport().set_input_as_handled()
+## El coordinador de menus (main.gd) escucha T y Esc por este panel.

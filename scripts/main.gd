@@ -21,6 +21,9 @@ const WeaponScript := preload("res://scripts/combat/weapon.gd")
 const PauseMenuScript := preload("res://scripts/ui/pause_menu.gd")
 const MissionBoardScript := preload("res://scripts/ui/mission_board.gd")
 const TechMenuScript := preload("res://scripts/ui/tech_menu.gd")
+## Pulido (Task 1): el coordinador de menus escucha J/T/I/Tab-B y Esc por los
+## cuatro paneles y deja que Esc llegue a la pausa si no hay ninguno abierto.
+const MenuCoordinatorScript := preload("res://scripts/ui/menu_coordinator.gd")
 const InventoryMenuScript := preload("res://scripts/ui/inventory_menu.gd")
 const DamageNumberScript := preload("res://scripts/fx/damage_number.gd")
 
@@ -255,6 +258,19 @@ func _ready() -> void:
 	var pause: CanvasLayer = PauseMenuScript.new()
 	pause.name = "PauseMenu"
 	add_child(pause)
+
+	# Coordinador de menus blandos: escucha J/T/I/Tab-B y Esc por los cuatro
+	# paneles, abre uno cerrando los demas y deja que Esc llegue a la pausa
+	# cuando no hay ningun menu blando abierto.
+	var coordinador := MenuCoordinatorScript.new()
+	coordinador.name = "MenuCoordinator"
+	add_child(coordinador)
+	coordinador.call("setup", {
+		"mission_board": tablero,
+		"tech_tree": tech_menu,
+		"inventory": inventario_menu,
+		"arsenal_menu": arsenal,
+	}, pause)
 
 
 ## Purga aceptada: levanta el campamento en la Columna rota con los objetivos
