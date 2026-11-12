@@ -1,4 +1,4 @@
-extends CanvasLayer
+﻿extends CanvasLayer
 
 ## HUD minimo: minimapa en la esquina superior derecha, brujula encima, y el nombre de
 ## Rito arriba a la izquierda. Todo 2D, asi que no toca el coste de relleno del terreno.
@@ -57,13 +57,13 @@ var _riposte_label: Label
 var _xp_fill: ColorRect
 var _xp_level_label: Label
 var _mission_label: Label
-var _streak_label: Label
+var _streak_label: Label`r`nvar _time_left_label: Label
 var _mission_system: Node
 var _mission_system_bound := false
 var _active_mission: Dictionary = {}
 var _mission_current := 0
 var _mission_goal := 0
-var _xp_ratio := 0.0
+var _xp_ratio := 0.0`r`nvar _time_left := -1
 var _boss: Node3D
 var _boss_label: Label
 var _boss_bar: Control
@@ -268,7 +268,7 @@ func _build_arsenal(combat: Node) -> void:
 	add_child(_weapon_stats_label)
 
 	var hint := _make_right_label(13, DIM)
-	hint.text = "B: arsenal · C: silbar"
+	hint.text = "B: arsenal Â· C: silbar"
 	hint.position = Vector2(VIEW_WIDTH - RIGHT_MARGIN - 200.0, CHIP_TOP + 84)
 	hint.size = Vector2(200, 20)
 	add_child(hint)
@@ -313,11 +313,11 @@ func _refresh_arsenal(combat: Node) -> void:
 	else:
 		reach_text = "%s m" % _decimal(reach, 1)
 	_weapon_name_label.text = str(weapon["name"]).to_upper()
-	_weapon_stats_label.text = "Daño %d  ·  Alcance %s  ·  Cadencia %s s" % [
+	_weapon_stats_label.text = "DaÃ±o %d  Â·  Alcance %s  Â·  Cadencia %s s" % [
 		int(weapon["damage"]), reach_text, _decimal(float(weapon["cooldown"]), 2)]
 
 
-## Los decimales en español llevan coma. El juego esta en castellano, asi que las cifras
+## Los decimales en espaÃ±ol llevan coma. El juego esta en castellano, asi que las cifras
 ## que lee el jugador tambien.
 func _decimal(value: float, decimals: int) -> String:
 	return String.num(value, decimals).replace(".", ",")
@@ -406,7 +406,7 @@ func _build_objective(progression: Node) -> void:
 	add_child(_boss_label)
 
 	_victory_label = Label.new()
-	_victory_label.text = "¡VICTORIA! 6 bandidos eliminados"
+	_victory_label.text = "Â¡VICTORIA! 6 bandidos eliminados"
 	_victory_label.add_theme_font_size_override("font_size", 38)
 	_victory_label.add_theme_color_override("font_color", Color(0.95, 0.85, 0.40))
 	_victory_label.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.9))
@@ -458,7 +458,7 @@ func _on_inventory() -> void:
 		panis = int(_progression.call("panis_count"))
 	else:
 		return
-	_panis_label.text = "Panis: %d · E: comer" % panis
+	_panis_label.text = "Panis: %d Â· E: comer" % panis
 
 
 func _on_victory() -> void:
@@ -468,7 +468,7 @@ func _on_victory() -> void:
 		return
 	if _victory_label != null:
 		if not _boss_won:
-			_victory_label.text = "¡VICTORIA! 6 bandidos eliminados"
+			_victory_label.text = "Â¡VICTORIA! 6 bandidos eliminados"
 		_victory_label.visible = true
 	var sfx := get_tree().get_first_node_in_group("sfx")
 	if sfx != null:
@@ -517,7 +517,7 @@ func _on_boss_defeated() -> void:
 	if _boss_bar != null:
 		_boss_bar.visible = false
 	if _victory_label != null:
-		_victory_label.text = "¡RITO COMPLETO!  Praetorian derrotado"
+		_victory_label.text = "Â¡RITO COMPLETO!  Praetorian derrotado"
 		_victory_label.visible = true
 
 
@@ -548,12 +548,12 @@ func bind_mission_system(system: Node) -> void:
 	system.connect("mission_completed", Callable(self, "_on_mission_completed"))
 	system.connect("mission_failed", Callable(self, "_on_mission_ended"))
 	system.connect("mission_abandoned", Callable(self, "_on_mission_ended"))
-	system.connect("streak_changed", Callable(self, "_on_streak_changed"))
+	system.connect("streak_changed", Callable(self, "_on_streak_changed"))`r`n	system.connect("time_left_changed", Callable(self, "set_time_left"))
 
 
 func _on_streak_changed(current: int, best: int) -> void:
 	if _streak_label != null:
-		_streak_label.text = "Racha: %d · Mejor: %d" % [current, best]
+		_streak_label.text = "Racha: %d Â· Mejor: %d" % [current, best]
 
 
 ## Crea los controles de mision si faltan (tambien sin setup previo, para que
@@ -604,7 +604,7 @@ func _ensure_mission_widgets() -> void:
 		add_child(_mission_label)
 	if _streak_label == null:
 		_streak_label = Label.new()
-		_streak_label.text = "Racha: 0 · Mejor: 0"
+		_streak_label.text = "Racha: 0 Â· Mejor: 0"
 		_streak_label.add_theme_font_size_override("font_size", 14)
 		_streak_label.add_theme_color_override("font_color", DIM)
 		_streak_label.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.85))
@@ -645,7 +645,7 @@ func _on_mission_completed(_mission: Dictionary, _rewards: Dictionary) -> void:
 	_clear_mission_label()
 	if _boss_won or _victory_label == null:
 		return
-	_victory_label.text = "Misión completada"
+	_victory_label.text = "MisiÃ³n completada"
 	_victory_label.visible = true
 	_banner_until = float(Time.get_ticks_msec()) / 1000.0 + 2.5
 
@@ -668,7 +668,7 @@ func _refresh_mission_label() -> void:
 	var tipo := str(_active_mission.get("type", ""))
 	if tipo == "defense":
 		_mission_label.text = "Oleada %d/3" % _defense_wave(_mission_current)
-	elif tipo == "escort":
+	elif tipo == "timed":`r`n		_mission_label.text = "Contrarreloj: %d s" % _time_left`r`n	elif tipo == "escort":
 		_mission_label.text = "Escolta: sigue al aliado"
 	elif tipo == "collect":
 		_mission_label.text = "Provisiones: %d/6" % _mission_current
@@ -706,7 +706,7 @@ func mission_label_text() -> String:
 	return _mission_label.text
 
 
-func streak_label_text() -> String:
+func set_time_left(seconds: int) -> void:`r`n	_time_left = seconds:`r`n	if _time_left_label != null:`r`n		_time_left_label.text = "Contrarreloj: %d s" % seconds:`r`n`r`nfunc streak_label_text() -> String:
 	if _streak_label == null:
 		return ""
 	return _streak_label.text

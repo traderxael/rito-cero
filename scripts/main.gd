@@ -1,4 +1,4 @@
-extends Node3D
+﻿extends Node3D
 
 const WorldBuilderScript := preload("res://scripts/world/world_builder.gd")
 const VegetationScript := preload("res://scripts/world/vegetation.gd")
@@ -28,6 +28,7 @@ const InventoryMenuScript := preload("res://scripts/ui/inventory_menu.gd")
 const DamageNumberScript := preload("res://scripts/fx/damage_number.gd")
 const EscortSiteScript := preload("res://scripts/missions/escort_site.gd")
 const CollectSiteScript := preload("res://scripts/missions/collect_site.gd")
+const TimedPurgeScript := preload("res://scripts/missions/timed_site.gd")
 
 var _combatant: Combatant
 var _progression: Node
@@ -37,8 +38,7 @@ var _missions: MissionSystem
 var _camp: Node3D
 var _defense: Node3D
 var _escort: Node3D
-var _collect: Node3D
-var _world_event: Node
+var _collect: Node3D`r`nvar _timed: Node3D`r`nvar _world_event: Node
 var _poi_ref: Dictionary = {}
 var _terrain_ref: Terrain3D
 var _rito_ref: Node3D
@@ -89,18 +89,18 @@ func _ready() -> void:
 	feel.call("setup", fx)
 	rito.call("bind_feel", feel)
 
-	# Progresión: denarios, consumibles (tecla E) y el objetivo de eliminar 6 bandidos.
-	# Consolidación de guardado (Task 13): MissionSystem es el dueño del guardado
+	# ProgresiÃ³n: denarios, consumibles (tecla E) y el objetivo de eliminar 6 bandidos.
+	# ConsolidaciÃ³n de guardado (Task 13): MissionSystem es el dueÃ±o del guardado
 	# porque su current_save() es el superset (xp/nivel/denarios/inventario/tech/
 	# rachas) y el de Progression ({denarios, inventario}) es un subconjunto.
 	# Ambos leen el MISMO dict (sin sumar: no hay doble conteo) y tras el apply
 	# el archivo se reescribe como superset para que el _save() inmediato de
 	# Progression.setup no deje el archivo degradado. Durante la partida los dos
 	# nodos acumulan por separado; el guardado de MissionSystem (cada 30 s, al
-	# completar y al cerrar) gana y es el que se lee en el próximo arranque. La
-	# ventana pendiente es solo el botín de Progression entre su último _save()
-	# y el siguiente guardado de MissionSystem (máx. 30 s): el archivo puede
-	# retener denarios/inventario algo más viejos en ese intervalo, sin perder
+	# completar y al cerrar) gana y es el que se lee en el prÃ³ximo arranque. La
+	# ventana pendiente es solo el botÃ­n de Progression entre su Ãºltimo _save()
+	# y el siguiente guardado de MissionSystem (mÃ¡x. 30 s): el archivo puede
+	# retener denarios/inventario algo mÃ¡s viejos en ese intervalo, sin perder
 	# nunca XP/nivel/tech/rachas.
 	var datos_guardado := SaveGame.load()
 	_progression = ProgressionScript.new()
@@ -121,7 +121,7 @@ func _ready() -> void:
 	_dog.connect("killed", Callable(player_attack, "add_kill"))
 	rito.call("bind_dog", _dog)
 
-	# Nuevo: esclavo con modelo esquelético y animaciones
+	# Nuevo: esclavo con modelo esquelÃ©tico y animaciones
 	_slave = SlaveScript.new()
 	_slave.name = "Slave"
 	add_child(_slave)
@@ -165,7 +165,7 @@ func _ready() -> void:
 	_poi_ref = (structures.poi_positions as Dictionary).duplicate()
 	_rito_ref = rito
 	_missions.call("setup", rito, player_attack, structures.poi_positions, world.terrain)
-	# Restauración diferida: apply_save emite xp/coins/inventory/streak y el HUD
+	# RestauraciÃ³n diferida: apply_save emite xp/coins/inventory/streak y el HUD
 	# aun no esta enlazado aqui, asi que el guardado se aplica mas abajo, tras
 	# bind_mission_system, para que el HUD refleje el nivel cargado al instante.
 	# El guardado parcial de Progression.setup se tapa con el superset justo despues.
@@ -207,9 +207,9 @@ func _ready() -> void:
 	add_child(tablero)
 	tablero.call("setup", _missions, player_attack)
 
-	# Árbol de tecnología: se abre con T y deja el combate en pausa blanda.
-	# Consume MissionSystem (buy_tech/has_tech); el daño del gladius se aplica por
-	# la señal tech_changed al WeaponsHolder de Rito.
+	# Ãrbol de tecnologÃ­a: se abre con T y deja el combate en pausa blanda.
+	# Consume MissionSystem (buy_tech/has_tech); el daÃ±o del gladius se aplica por
+	# la seÃ±al tech_changed al WeaponsHolder de Rito.
 	var tech_menu: CanvasLayer = TechMenuScript.new()
 	tech_menu.name = "TechMenu"
 	add_child(tech_menu)
@@ -237,14 +237,14 @@ func _ready() -> void:
 	hud.call("setup", rito, world.terrain, world.spawn_point, player_attack, _progression, structures.boss)
 	hud.call("bind_mission_system", _missions)
 	_hud = hud
-	# Restauración del guardado: MissionSystem aplica el superset una sola vez
+	# RestauraciÃ³n del guardado: MissionSystem aplica el superset una sola vez
 	# (XP/nivel/denarios/inventario/tech/rachas) y el archivo se reescribe ya
 	# como superset, tapando el guardado parcial que acaba de hacer Progression.
 	# Va tras bind_mission_system para que las senales de apply_save lleguen al HUD.
 	_missions.apply_save(datos_guardado)
-	# Re-aplicación de la armería al arrancar: el multiplicador del gladius solo
-	# se aplicaba al comprar (tech_changed); tras cargar un guardado con armería
-	# hay que reaplicarlo al holder o el gladius arranca en 1,0 hasta la próxima
+	# Re-aplicaciÃ³n de la armerÃ­a al arrancar: el multiplicador del gladius solo
+	# se aplicaba al comprar (tech_changed); tras cargar un guardado con armerÃ­a
+	# hay que reaplicarlo al holder o el gladius arranca en 1,0 hasta la prÃ³xima
 	# compra.
 	if _missions.has_tech("armeria1") or _missions.has_tech("armeria2") or _missions.has_tech("armeria3"):
 		_apply_armeria_mult()
@@ -319,6 +319,11 @@ func _on_mission_started(mision: Dictionary) -> void:
 			return
 		_close_collect()
 		_escort = CollectSiteScript.begin(self, _poi_ref["muro"], _terrain_ref, _missions, _rito_ref)
+	elif tipo == "timed":
+		if not _poi_ref.has("columna") or _terrain_ref == null or _rito_ref == null:
+			return
+		_close_timed()
+		_timed = TimedPurgeScript.begin(self, _poi_ref["columna"], int(mision.get("targets", 0)), _terrain_ref, _missions, _rito_ref, float(mision.get("time_limit", 90)))
 
 
 func _on_mission_completed(_mision: Dictionary, _recompensas: Dictionary) -> void:
@@ -326,6 +331,7 @@ func _on_mission_completed(_mision: Dictionary, _recompensas: Dictionary) -> voi
 	_close_defense()
 	_close_escort()
 	_close_collect()
+	_close_timed()
 	_clear_objective_marker()
 	_save_progress()
 
@@ -335,6 +341,7 @@ func _on_mission_failed(_mision: Dictionary) -> void:
 	_close_defense()
 	_close_escort()
 	_close_collect()
+	_close_timed()
 	_clear_objective_marker()
 
 
@@ -343,6 +350,7 @@ func _on_mission_abandoned(_mision: Dictionary) -> void:
 	_close_defense()
 	_close_escort()
 	_close_collect()
+	_close_timed()
 	_clear_objective_marker()
 
 
@@ -358,7 +366,7 @@ func _on_player_died(_source_position: Vector3) -> void:
 		_close_camp()
 
 
-## Compra de armería: pasa el multiplicador de daño del gladius al WeaponsHolder
+## Compra de armerÃ­a: pasa el multiplicador de daÃ±o del gladius al WeaponsHolder
 ## de Rito. Se aplica con cualquier nivel de armeria para que 1,1/1,2/1,3 entren
 ## en cuanto se compra (mira la mayor comprada en MissionSystem).
 func _on_tech_changed(node_id: String) -> void:
@@ -369,8 +377,8 @@ func _on_tech_changed(node_id: String) -> void:
 	_apply_armeria_mult()
 
 
-## Aplica el multiplicador de la armería mayor al holder del gladius. Es el mismo
-## efecto para la compra en caliente y para la restauración del guardado al
+## Aplica el multiplicador de la armerÃ­a mayor al holder del gladius. Es el mismo
+## efecto para la compra en caliente y para la restauraciÃ³n del guardado al
 ## arrancar.
 func _apply_armeria_mult() -> void:
 	if _missions == null or _rito_ref == null:
@@ -382,8 +390,8 @@ func _apply_armeria_mult() -> void:
 
 
 ## Guardado de MissionSystem (el superset). Se llama cada 30 s, al completar una
-## misión y al pedir el cierre de la ventana, para que el archivo siempre guarde
-## XP/nivel/tech/rachas además de denarios e inventario.
+## misiÃ³n y al pedir el cierre de la ventana, para que el archivo siempre guarde
+## XP/nivel/tech/rachas ademÃ¡s de denarios e inventario.
 func _save_progress() -> void:
 	if _missions == null:
 		return
@@ -476,6 +484,16 @@ func _close_collect() -> void:
 	_collect.call("finish")
 	_collect.queue_free()
 	_collect = null
+
+
+## Desmonta la contrarreloj y libera su campamento.
+func _close_timed() -> void:
+	if _timed == null or not is_instance_valid(_timed):
+		_timed = null
+		return
+	_timed.call("finish")
+	_timed.queue_free()
+	_timed = null
 
 
 func _unhandled_input(event: InputEvent) -> void:
