@@ -12,6 +12,8 @@ const TEXT := Color(0.88, 0.84, 0.74)
 
 var _root: Control
 var _open := false
+var _system: Node
+var _stats_label: Label
 
 
 func _ready() -> void:
@@ -49,6 +51,45 @@ func _ready() -> void:
 	restart_btn.pressed.connect(_on_restart)
 	_root.add_child(restart_btn)
 
+	_stats_label = Label.new()
+	_stats_label.add_theme_font_size_override("font_size", 16)
+	_stats_label.add_theme_color_override("font_color", TEXT)
+	_stats_label.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.85))
+	_stats_label.add_theme_constant_override("shadow_offset_x", 1)
+	_stats_label.add_theme_constant_override("shadow_offset_y", 1)
+	_stats_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_stats_label.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
+	_stats_label.offset_left = -200
+	_stats_label.offset_right = 200
+	_stats_label.offset_top = 230
+	_stats_label.offset_bottom = 256
+	_stats_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_root.add_child(_stats_label)
+
+
+## Enlaza el sistema de misiones para pintar las estadisticas al abrir.
+func setup(system: Node) -> void:
+	_system = system
+
+
+## Texto de estadisticas visible (nivel, denarios, racha y mejor racha).
+func stats_text() -> String:
+	if _stats_label == null:
+		return ""
+	return _stats_label.text
+
+
+## Repinta las estadisticas con el estado actual del sistema.
+func _refresh_stats() -> void:
+	if _stats_label == null:
+		return
+	if _system == null:
+		_stats_label.text = ""
+		return
+	_stats_label.text = "Nivel %d · Denarios: %d · Racha: %d · Mejor: %d" % [
+		int(_system.get("level")), int(_system.get("coins")),
+		int(_system.get("current_streak")), int(_system.get("best_streak"))]
+
 
 func _make_button(text: String, y: float) -> Button:
 	var button := Button.new()
@@ -77,6 +118,7 @@ func toggle() -> void:
 func apply_pause() -> void:
 	get_tree().paused = _open
 	_root.visible = _open
+	_refresh_stats()
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE if _open else Input.MOUSE_MODE_CAPTURED
 
 

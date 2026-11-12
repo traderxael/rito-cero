@@ -57,6 +57,7 @@ var _riposte_label: Label
 var _xp_fill: ColorRect
 var _xp_level_label: Label
 var _mission_label: Label
+var _streak_label: Label
 var _mission_system: Node
 var _mission_system_bound := false
 var _active_mission: Dictionary = {}
@@ -547,6 +548,12 @@ func bind_mission_system(system: Node) -> void:
 	system.connect("mission_completed", Callable(self, "_on_mission_completed"))
 	system.connect("mission_failed", Callable(self, "_on_mission_ended"))
 	system.connect("mission_abandoned", Callable(self, "_on_mission_ended"))
+	system.connect("streak_changed", Callable(self, "_on_streak_changed"))
+
+
+func _on_streak_changed(current: int, best: int) -> void:
+	if _streak_label != null:
+		_streak_label.text = "Racha: %d · Mejor: %d" % [current, best]
 
 
 ## Crea los controles de mision si faltan (tambien sin setup previo, para que
@@ -595,6 +602,17 @@ func _ensure_mission_widgets() -> void:
 		_mission_label.position = Vector2(18, 174)
 		_mission_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		add_child(_mission_label)
+	if _streak_label == null:
+		_streak_label = Label.new()
+		_streak_label.text = "Racha: 0 · Mejor: 0"
+		_streak_label.add_theme_font_size_override("font_size", 14)
+		_streak_label.add_theme_color_override("font_color", DIM)
+		_streak_label.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.85))
+		_streak_label.add_theme_constant_override("shadow_offset_x", 1)
+		_streak_label.add_theme_constant_override("shadow_offset_y", 1)
+		_streak_label.position = Vector2(18, 192)
+		_streak_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		add_child(_streak_label)
 
 
 func _on_xp_changed(total: int, needed: int, level: int) -> void:
@@ -682,6 +700,12 @@ func mission_label_text() -> String:
 	if _mission_label == null:
 		return ""
 	return _mission_label.text
+
+
+func streak_label_text() -> String:
+	if _streak_label == null:
+		return ""
+	return _streak_label.text
 
 
 func xp_fill_ratio() -> float:

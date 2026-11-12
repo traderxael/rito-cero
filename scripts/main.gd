@@ -258,6 +258,7 @@ func _ready() -> void:
 	var pause: CanvasLayer = PauseMenuScript.new()
 	pause.name = "PauseMenu"
 	add_child(pause)
+	pause.call("setup", _missions)
 
 	# Coordinador de menus blandos: escucha J/T/I/Tab-B y Esc por los cuatro
 	# paneles, abre uno cerrando los demas y deja que Esc llegue a la pausa
