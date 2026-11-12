@@ -212,14 +212,18 @@ func _try_attack() -> void:
 	# Cada segundo ataque es un empujon: menos dano, pero mete a Rito en el aire.
 	var pushing := _attack_count % PUSH_EVERY == 0
 	var clip_name := "Push" if pushing else "Sword_Attack"
-	_play(clip_name, ATTACK_ANIM_SPEED)
+	var anim_speed := PUSH_ANIM_SPEED if pushing else ATTACK_ANIM_SPEED
+	_play(clip_name, anim_speed)
 	var clip_length := 0.5
 	if _anim != null and _anim.has_animation(clip_name):
-		clip_length = _anim.get_animation(clip_name).length / ATTACK_ANIM_SPEED
+		clip_length = _anim.get_animation(clip_name).length / anim_speed
 	_swing_until = _now() + clip_length
 	_volume.begin_swing(PUSH_DAMAGE if pushing else attack_damage, self, 0.25, 0.55, clip_length, ATTACK_WINDUP)
+	# El empuje fisico espera a que se abra la ventana de dano: si sale en el
+	# windup, aleja a Rito antes de que el volumen pueda alcanzarlo.
 	if pushing:
-		_push_target()
+		var push_at := ATTACK_WINDUP + clip_length * 0.30
+		get_tree().create_timer(push_at).timeout.connect(_push_target)
 	var sfx := _sfx()
 	if sfx != null:
 		sfx.call("play", "swing", global_position, -12.0)
@@ -228,6 +232,8 @@ func _try_attack() -> void:
 ## El empujon fisico: el bandido mete a Rito en el aire. Solo el jugador sabe recibir un
 ## empujon; el moloso tiene su propia forma de caerse.
 func _push_target() -> void:
+	if state == "DEAD" or state == "STUN":
+		return
 	if _target == null or not is_instance_valid(_target):
 		return
 	if not _target.has_method("apply_push"):

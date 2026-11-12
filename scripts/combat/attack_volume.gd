@@ -50,7 +50,7 @@ func begin_swing(damage: float, source: Node3D, open_at: float, close_at: float,
 	_open_at = _started_at + windup + clip_length * open_at
 	_close_at = _started_at + windup + clip_length * close_at
 	_open = false
-	if clip_length * open_at <= 0.0:
+	if windup + clip_length * open_at <= 0.0:
 		_open = true
 
 

@@ -59,7 +59,8 @@ para que el parry sea una decisión y no un botón de suerte.
 
 ### Parry
 
-- Ventana de **0,20 s** desde que se pulsa Q.
+- Ventana de **0,20 s** desde que se pulsa Q. Soltar Q no cancela la ventana: el gesto
+  es una pulsación. Atacar o esquivar sí la cancela.
 - Si un ataque frontal impacta dentro de la ventana: daño 0, coste de guardia 0,
   atacante aturdido **1,1 s**, y se abre riposte.
 - El parry no funciona por la espalda.
@@ -69,6 +70,8 @@ para que el parry sea una decisión y no un botón de suerte.
 
 - Ventana de **1,5 s** tras un parry.
 - El siguiente golpe cuerpo a cuerpo hace **1,75×** daño y fuerza crítico/aturdimiento.
+  Sobre un enemigo ya aturdido por el parry nunca hace menos que el crítico normal
+  (2×): se usa el mayor de ambos multiplicadores.
 - Se consume al impactar o al expirar la ventana.
 - El pilum no consume riposte: es ataque a distancia.
 

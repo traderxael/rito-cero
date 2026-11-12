@@ -338,10 +338,10 @@ func _on_landed(target: Node, damage: float, was_stunned: bool = false, allow_ri
 	var riposte := _rito.consume_riposte() if allow_riposte else 1.0
 	var multiplier := CRITICAL_MULTIPLIER if critical else 1.0
 	if riposte > 1.0:
-		# El contraataque no se apila con el critico: sustituye el multiplicador,
-		# pero mantiene el feedback dorado y el aturdimiento.
+		# El contraataque nunca puede hacer menos dano que un critico normal sobre
+		# un enemigo aturdido: el parry ya lo deja en STUN.
 		critical = true
-		multiplier = riposte
+		multiplier = maxf(multiplier, riposte)
 	if multiplier > 1.0 and combatant != null and combatant.is_alive():
 		combatant.take_damage(damage * (multiplier - 1.0), _rito.global_position)
 	var total := damage * multiplier

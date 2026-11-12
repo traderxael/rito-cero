@@ -266,6 +266,7 @@ func _physics_process(delta: float) -> void:
 
 	# Movimiento con aceleración. La guardia impide esprintar y frena el paso.
 	_update_guard(delta)
+	_update_riposte()
 	var target_speed := RUN_SPEED if Input.is_action_pressed("sprint") and not _guarding else WALK_SPEED
 	if _guarding:
 		target_speed *= GUARD_SPEED_MULT
@@ -714,6 +715,10 @@ func set_guarding(value: bool) -> void:
 		_guarding = true
 		return
 	_guarding = false
+
+
+## Cancela la ventana de parry sin bajar la guardia: lo usan atacar y esquivar.
+func cancel_parry() -> void:
 	_parry_until = 0.0
 
 
@@ -751,11 +756,11 @@ func consume_riposte() -> float:
 ## El ataque enemigo pasa por aqui cuando el cuerpo es Rito. Devuelve true si la
 ## guardia consumio el golpe; false deja que AttackVolume aplique el dano normal.
 func receive_attack(amount: float, source: Node3D) -> bool:
-	if not is_alive() or not _guarding or source == null or combatant == null:
+	if not is_alive() or source == null or combatant == null:
 		return false
 	var to_source := source.global_position - global_position
 	to_source.y = 0.0
-	var forward := -model.global_transform.basis.z
+	var forward := model.global_transform.basis.z
 	forward.y = 0.0
 	if to_source.length() < 0.01 or forward.length() < 0.01:
 		return false
@@ -763,6 +768,7 @@ func receive_attack(amount: float, source: Node3D) -> bool:
 		return false
 
 	# El parry se comprueba antes del coste de guardia: un acierto no gasta barra.
+	# La ventana sobrevive a soltar Q: el gesto es una pulsacion, no un mantenimiento.
 	if _now() <= _parry_until:
 		_parry_until = 0.0
 		_riposte_until = _now() + RIPOSTE_WINDOW
@@ -770,7 +776,18 @@ func receive_attack(amount: float, source: Node3D) -> bool:
 			source.call("stagger", PARRY_STAGGER)
 		parried.emit()
 		riposte_changed.emit(true)
+		var at := global_position + Vector3(0, 1.2, 0)
+		var sfx := _sfx()
+		if sfx != null:
+			sfx.play("hit", at, -4.0)
+		var feel := _feel()
+		if feel != null:
+			feel.impact(at, Color(1.0, 0.74, 0.22), true)
+			feel.hit_stop(0.05, Feel.IMPACT_TYPE_STRONG)
 		return true
+
+	if not _guarding:
+		return false
 
 	var cost := amount * GUARD_COST_MULT
 	if cost >= _guard:
@@ -797,6 +814,14 @@ func _update_guard(delta: float) -> void:
 		return
 	_guard = minf(_guard + GUARD_REGEN * delta, GUARD_MAX)
 	guard_changed.emit(_guard, GUARD_MAX)
+
+
+## La ventana de riposte caduca sola; sin esto el cartel CONTRAATAQUE se queda
+## encendido para siempre si el jugador no llega a golpear.
+func _update_riposte() -> void:
+	if _riposte_until > 0.0 and _now() > _riposte_until:
+		_riposte_until = 0.0
+		riposte_changed.emit(false)
 
 
 func _reset_guard_state() -> void:

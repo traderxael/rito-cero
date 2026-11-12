@@ -52,6 +52,7 @@ var _victory_label: Label
 var _combo_label: Label
 var _guard_fill: ColorRect
 var _parry_label: Label
+var _parry_tween: Tween
 var _riposte_label: Label
 var _xp_fill: ColorRect
 var _xp_level_label: Label
@@ -147,6 +148,7 @@ func _build_defense_labels() -> void:
 	_parry_label.add_theme_constant_override("shadow_offset_y", 2)
 	_parry_label.position = Vector2(640.0 - 80.0, 112.0)
 	_parry_label.size = Vector2(160, 36)
+	_parry_label.pivot_offset = _parry_label.size * 0.5
 	_parry_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_parry_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_parry_label.visible = false
@@ -176,13 +178,16 @@ func _on_guard_changed(current: float, maximum: float) -> void:
 func _on_parried() -> void:
 	if _parry_label == null:
 		return
+	if _parry_tween != null and _parry_tween.is_valid():
+		_parry_tween.kill()
 	_parry_label.visible = true
 	_parry_label.modulate.a = 1.0
 	_parry_label.scale = Vector2.ONE * 1.3
-	var tween := create_tween()
-	tween.set_parallel(true)
-	tween.tween_property(_parry_label, "scale", Vector2.ONE, 0.12)
-	tween.tween_property(_parry_label, "modulate:a", 0.0, 0.45).set_delay(0.15)
+	_parry_tween = create_tween()
+	_parry_tween.set_parallel(true)
+	_parry_tween.tween_property(_parry_label, "scale", Vector2.ONE, 0.12)
+	_parry_tween.tween_property(_parry_label, "modulate:a", 0.0, 0.45).set_delay(0.15)
+	_parry_tween.finished.connect(_parry_label.hide)
 
 
 func _on_riposte_changed(active: bool) -> void:
@@ -339,7 +344,7 @@ func _build_health(combatant: Combatant, combat: Node) -> void:
 	_kills_label.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.85))
 	_kills_label.add_theme_constant_override("shadow_offset_x", 1)
 	_kills_label.add_theme_constant_override("shadow_offset_y", 1)
-	_kills_label.position = Vector2(18, 70)
+	_kills_label.position = Vector2(18, 80)
 	_kills_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_kills_label)
 
@@ -364,7 +369,7 @@ func _build_objective(progression: Node) -> void:
 	_objective_label.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.85))
 	_objective_label.add_theme_constant_override("shadow_offset_x", 1)
 	_objective_label.add_theme_constant_override("shadow_offset_y", 1)
-	_objective_label.position = Vector2(18, 88)
+	_objective_label.position = Vector2(18, 98)
 	_objective_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_objective_label)
 
@@ -375,7 +380,7 @@ func _build_objective(progression: Node) -> void:
 		_coins_label.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.85))
 		_coins_label.add_theme_constant_override("shadow_offset_x", 1)
 		_coins_label.add_theme_constant_override("shadow_offset_y", 1)
-		_coins_label.position = Vector2(18, 106)
+		_coins_label.position = Vector2(18, 116)
 		_coins_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		add_child(_coins_label)
 
@@ -385,7 +390,7 @@ func _build_objective(progression: Node) -> void:
 	_panis_label.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.85))
 	_panis_label.add_theme_constant_override("shadow_offset_x", 1)
 	_panis_label.add_theme_constant_override("shadow_offset_y", 1)
-	_panis_label.position = Vector2(18, 124)
+	_panis_label.position = Vector2(18, 134)
 	_panis_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_panis_label)
 
@@ -395,7 +400,7 @@ func _build_objective(progression: Node) -> void:
 	_boss_label.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.85))
 	_boss_label.add_theme_constant_override("shadow_offset_x", 1)
 	_boss_label.add_theme_constant_override("shadow_offset_y", 1)
-	_boss_label.position = Vector2(18, 142)
+	_boss_label.position = Vector2(18, 152)
 	_boss_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_boss_label)
 
@@ -551,13 +556,13 @@ func _ensure_mission_widgets() -> void:
 		var fondo := ColorRect.new()
 		fondo.color = Color(0.06, 0.05, 0.04, 0.55)
 		fondo.size = Vector2(190, 6)
-		fondo.position = Vector2(18, 60)
+		fondo.position = Vector2(18, 66)
 		fondo.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		add_child(fondo)
 		_xp_fill = ColorRect.new()
 		_xp_fill.color = Color(0.95, 0.75, 0.25, 0.75)
 		_xp_fill.size = Vector2(0, 4)
-		_xp_fill.position = Vector2(20, 61)
+		_xp_fill.position = Vector2(20, 67)
 		_xp_fill.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		add_child(_xp_fill)
 		_xp_level_label = Label.new()
@@ -567,7 +572,7 @@ func _ensure_mission_widgets() -> void:
 		_xp_level_label.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.85))
 		_xp_level_label.add_theme_constant_override("shadow_offset_x", 1)
 		_xp_level_label.add_theme_constant_override("shadow_offset_y", 1)
-		_xp_level_label.position = Vector2(214, 56)
+		_xp_level_label.position = Vector2(214, 64)
 		_xp_level_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		add_child(_xp_level_label)
 	if _coins_label == null:
@@ -577,7 +582,7 @@ func _ensure_mission_widgets() -> void:
 		_coins_label.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.85))
 		_coins_label.add_theme_constant_override("shadow_offset_x", 1)
 		_coins_label.add_theme_constant_override("shadow_offset_y", 1)
-		_coins_label.position = Vector2(18, 106)
+		_coins_label.position = Vector2(18, 116)
 		_coins_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		add_child(_coins_label)
 	if _mission_label == null:
@@ -587,7 +592,7 @@ func _ensure_mission_widgets() -> void:
 		_mission_label.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.85))
 		_mission_label.add_theme_constant_override("shadow_offset_x", 1)
 		_mission_label.add_theme_constant_override("shadow_offset_y", 1)
-		_mission_label.position = Vector2(18, 164)
+		_mission_label.position = Vector2(18, 174)
 		_mission_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		add_child(_mission_label)
 
