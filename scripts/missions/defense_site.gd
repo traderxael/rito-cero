@@ -89,6 +89,7 @@ func _process(delta: float) -> void:
 func _spawn_wave(indice: int) -> void:
 	_oleada = indice
 	var conteo: int = WAVES[indice]
+	var tipos := BanditCamp.composition(int(_sistema.level), conteo)
 	_restantes = conteo
 	var datos: Variant = _terreno.get_data() if _terreno != null else null
 	for i in conteo:
@@ -97,7 +98,7 @@ func _spawn_wave(indice: int) -> void:
 		if datos != null:
 			var altura: float = datos.get_height(Vector3(posicion.x, 0.0, posicion.z))
 			posicion.y = _centro.y if is_nan(altura) else altura
-		var bandido := BanditCamp.spawn_bandit(self, posicion, angulo, _terreno, _objetivo)
+		var bandido := BanditCamp.spawn_bandit(self, posicion, angulo, _terreno, _objetivo, tipos[i])
 		(bandido.get_node("Combatant") as Combatant).died.connect(Callable(self, "_on_bandit_died"))
 		_bandidos.append(bandido)
 

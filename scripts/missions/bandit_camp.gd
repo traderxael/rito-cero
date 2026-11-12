@@ -45,13 +45,15 @@ static func spawn(parent: Node, center: Vector3, count: int, terrain: Variant,
 	if count <= 0:
 		return camp
 	var data: Variant = terrain.get_data() if terrain != null else null
+	var nivel := system.level if system != null else 1
+	var tipos := composition(int(nivel), count)
 	for i in count:
 		var angle := TAU * float(i) / float(count)
 		var position := center + Vector3(cos(angle), 0.0, sin(angle)) * RING_RADIUS
 		if data != null:
 			var height: float = data.get_height(Vector3(position.x, 0.0, position.z))
 			position.y = center.y if is_nan(height) else height
-		var bandit := spawn_bandit(camp, position, angle, terrain, target)
+		var bandit := spawn_bandit(camp, position, angle, terrain, target, tipos[i])
 		(bandit.get_node("Combatant") as Combatant).died.connect(Callable(camp, "_on_bandit_died"))
 		camp._bandits.append(bandit)
 	return camp

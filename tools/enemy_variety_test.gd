@@ -6,9 +6,14 @@ extends SceneTree
 
 const HOSTILE := preload("res://scripts/npc/hostile_npc.gd")
 const BanditCampScript := preload("res://scripts/missions/bandit_camp.gd")
+const DefenseSiteScript := preload("res://scripts/missions/defense_site.gd")
+const MissionSystemScript := preload("res://scripts/missions/mission_system.gd")
+const SlingerScript := preload("res://scripts/npc/slinger_npc.gd")
+const BruteScript := preload("res://scripts/npc/brute_npc.gd")
+const RunnerScript := preload("res://scripts/npc/runner_npc.gd")
 const CombatantScript := preload("res://scripts/combat/combatant.gd")
 
-const EXPECTED_CHECKS := 27
+const EXPECTED_CHECKS := 33
 
 var _failures := 0
 var _checks_run := 0
@@ -21,6 +26,7 @@ func _init() -> void:
 	await _test_hondero()
 	await _test_bruto()
 	await _test_corredor()
+	await _test_composicion_en_sitios()
 	if _checks_run != EXPECTED_CHECKS:
 		_failures += 1
 		print("FAIL solo se ejecutaron ", _checks_run, " de ", EXPECTED_CHECKS, " checks")
@@ -209,3 +215,60 @@ func _test_corredor() -> void:
 	_check(is_equal_approx(float(corredor.get("_swing_until")), primero), "el segundo ataque no entra en el cooldown")
 	corredor.queue_free()
 	stub.queue_free()
+
+
+class StubSystem:
+	extends MissionSystemScript
+
+
+## El sitio lee composition(_nivel, conteo): nivel 3 sin honderos, 6 con uno,
+## 12 con brutos y corredores, y en la defensa la oleada 1 no trae brutos.
+func _test_composicion_en_sitios() -> void:
+	await process_frame
+	var sistema := StubSystem.new()
+	sistema.level = 3
+	root.add_child(sistema)
+	var target := _target_at(Vector3.ZERO)
+	var camp := BanditCampScript.spawn(root, Vector3.ZERO, 4, null, sistema, target)
+	await process_frame
+	var hos := get_nodes_in_group("mission_bandits")
+	_check(hos.size() == 4, "purga nivel 3: 4 enemigos en el anillo")
+	var todos_bandidos := true
+	for h in hos:
+		if h.get_script() != HOSTILE:
+			todos_bandidos = false
+	_check(todos_bandidos, "nivel 3: todos bandidos (sin honderos)")
+	camp.finish(); camp.queue_free()
+	for h in hos: h.queue_free()
+
+	sistema.level = 6
+	var camp2 := BanditCampScript.spawn(root, Vector3.ZERO, 5, null, sistema, target)
+	await process_frame
+	var hos2 := get_nodes_in_group("mission_bandits")
+	var slingers2 := 0
+	for h in hos2:
+		if h.get_script() == SlingerScript:
+			slingers2 += 1
+	_check(slingers2 == 1, "nivel 6: 1 hondero en la purga")
+	camp2.finish(); camp2.queue_free()
+	for h in hos2: h.queue_free()
+
+	sistema.level = 12
+	var sitio := DefenseSiteScript.begin(root, Vector3.ZERO, null, sistema, target)
+	await process_frame
+	var hos3 := get_nodes_in_group("mission_bandits")
+	var brutos3 := 0
+	var no_banditos3 := 0
+	for h in hos3:
+		var s: Script = h.get_script()
+		if s == BruteScript:
+			brutos3 += 1
+		if s != HOSTILE:
+			no_banditos3 += 1
+	_check(hos3.size() == 4, "defensa oleada 1: 4 enemigos")
+	_check(brutos3 == 0, "defensa oleada 1 nivel 12: sin brutos")
+	_check(no_banditos3 == 1, "defensa oleada 1 nivel 12: 1 hondero")
+	sitio.finish(); sitio.queue_free()
+	for h in hos3: h.queue_free()
+	sistema.queue_free()
+
