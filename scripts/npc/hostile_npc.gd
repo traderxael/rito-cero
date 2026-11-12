@@ -38,11 +38,17 @@ var state := "PATROL"
 var max_health := MAX_HEALTH
 var attack_damage := NPC_DAMAGE
 var body_scale := 1.0
+## Velocidad de persecucion: el bruto la baja y el corredor la sube desde aqui.
+var chase_speed := CHASE_SPEED
 
 ## False en quien no es bandido (el jefe): su muerte no suma al objetivo de bandidos.
 var counts_as_kill := true
 
 var _target: Node3D
+## Referencia al jugador para el cambio de objetivo: los bandidos de emboscada
+## pueden preferir al escolta, pero si el jugador se acerca y les pega, pasan
+## a perseguirlo a el. Sin ella, vale el propio objetivo.
+var _player_ref: Node3D
 var _combatant: Combatant
 var _volume: AttackVolume
 var _model: Node3D
@@ -66,9 +72,11 @@ func set_tint(color: Color) -> void:
 
 
 ## Con el objetivo opcional: GDScript exige que la firma del hijo sea compatible con la del
-## padre, y un cuarto argumento obligatorio la rompe.
-func setup(data, center: Vector3, angle: float, target: Node3D = null) -> void:
+## padre, y un cuarto argumento obligatorio la rompe. El quinto (player) es opcional y solo
+## lo usan las emboscadas: sin el, vale el propio objetivo.
+func setup(data, center: Vector3, angle: float, target: Node3D = null, player: Node3D = null) -> void:
 	_target = target
+	_player_ref = player if player != null else target
 	super.setup(data, center, angle)
 
 	# El moloso busca enemigos por este grupo: es la unica forma de que un companero
@@ -195,7 +203,7 @@ func _physics_process(delta: float) -> void:
 
 func _chase(direction: Vector3, delta: float) -> void:
 	var horizontal := Vector3(velocity.x, 0.0, velocity.z)
-	horizontal = horizontal.move_toward(direction * CHASE_SPEED, 8.0 * delta)
+	horizontal = horizontal.move_toward(direction * chase_speed, 8.0 * delta)
 	velocity.x = horizontal.x
 	velocity.z = horizontal.z
 	_face(direction)
@@ -247,6 +255,7 @@ func _push_target() -> void:
 
 func _on_damaged(_amount: float, _source_position: Vector3) -> void:
 	if _combatant.is_alive():
+		_switch_to_player_if_close()
 		state = "STUN"
 		_stun_until = _now() + STUN_SECONDS
 		# Un aturdido no sigue barriendo el volumen ni deslizandose con la inercia:
@@ -265,6 +274,17 @@ func _on_damaged(_amount: float, _source_position: Vector3) -> void:
 		var feel := _feel()
 		if feel != null:
 			feel.call("impact", global_position + Vector3(0, 1.2, 0), Color(0.75, 0.10, 0.06), false)
+
+
+## Cambio de objetivo: si el jugador esta cerca (le ha llegado a pegar), pasa a
+## perseguirlo en vez de al escolta. Sin _player_ref o si ya lo tenia, no hace nada.
+func _switch_to_player_if_close() -> void:
+	if _player_ref == null or _target == _player_ref:
+		return
+	if not is_instance_valid(_player_ref):
+		return
+	if global_position.distance_to(_player_ref.global_position) < 6.0:
+		_target = _player_ref
 
 
 func _on_died(_source_position: Vector3) -> void:

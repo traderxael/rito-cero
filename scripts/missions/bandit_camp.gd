@@ -58,21 +58,81 @@ static func spawn(parent: Node, center: Vector3, count: int, terrain: Variant,
 
 
 ## Un bandido de mision: NPC hostil con el grupo mission_bandits y el tinte rojizo.
-## Lo reusa el evento de mundo (Task 8): misma marca, otro escenario.
+## kind elige el tipo (bandit, slinger, brute, runner); player es la referencia
+## para el cambio de objetivo de las emboscadas; mutators aplica los
+## multiplicadores de los contratos (vida, dano, velocidad).
 static func spawn_bandit(parent: Node, position: Vector3, angle: float, terrain: Variant,
-		target: Node3D) -> Node3D:
+		target: Node3D, kind := "bandit", player: Node3D = null, mutators: Dictionary = {}) -> Node3D:
 	var data: Variant = FlatData.new()
 	if terrain != null:
 		data = terrain.get_data()
 		if data == null:
 			data = FlatData.new()
-	var bandit: CharacterBody3D = HOSTILE_SCRIPT.new()
+	var script := _script_for(kind)
+	var efectivo := kind
+	if script == HOSTILE_SCRIPT and kind != "bandit":
+		efectivo = "bandit"
+	var bandit: CharacterBody3D = script.new()
 	bandit.name = "Bandit"
 	parent.add_child(bandit)
-	bandit.call("setup", data, position, angle, target)
+	if efectivo == "bandit":
+		bandit.call("setup", data, position, angle, target, player)
+	else:
+		bandit.call("setup_" + efectivo, data, position, angle, target, player)
+	if not mutators.is_empty():
+		var vida := float(mutators.get("health", 1.0))
+		var dano := float(mutators.get("damage", 1.0))
+		var veloz := float(mutators.get("speed", 1.0))
+		bandit.set("max_health", float(bandit.get("max_health")) * vida)
+		bandit.set("attack_damage", float(bandit.get("attack_damage")) * dano)
+		bandit.set("chase_speed", float(bandit.get("chase_speed")) * veloz)
+		var combatiente: Node = bandit.get_node_or_null("Combatant")
+		if combatiente != null:
+			combatiente.call("setup", float(bandit.get("max_health")))
 	bandit.add_to_group("mission_bandits")
 	bandit.call("set_tint", BANDIT_TINT)
 	return bandit
+
+
+## Script de cada tipo de bandido. Si el archivo aun no existe (los tipos nuevos
+## llegan en tasks siguientes), avisa y cae al bandido base.
+static func _script_for(kind: String) -> Script:
+	const PATHS := {
+		"bandit": "res://scripts/npc/hostile_npc.gd",
+		"slinger": "res://scripts/npc/slinger_npc.gd",
+		"brute": "res://scripts/npc/brute_npc.gd",
+		"runner": "res://scripts/npc/runner_npc.gd",
+	}
+	var ruta := str(PATHS.get(kind, ""))
+	if ruta.is_empty() or not ResourceLoader.exists(ruta):
+		push_warning("spawn_bandit: tipo '%s' sin script, se usa bandido" % kind)
+		return HOSTILE_SCRIPT
+	return load(ruta) as Script
+
+
+## Composicion determinista de una partida segun el nivel: honderos desde el 5;
+## brutos y corredores desde el 10 ("1 de cada 6" y "1 de cada 5", sin suelo: con
+## lotes pequenos no aparecen). Bandidos primero, y nunca menos de uno.
+static func composition(level: int, total: int) -> Array[String]:
+	var tipos: Array[String] = []
+	var honderos := 0
+	var brutos := 0
+	var corredores := 0
+	if level >= 5:
+		honderos = maxi(1, total / 4)
+	if level >= 10:
+		brutos = total / 6
+		corredores = total / 5
+	var bandidos := maxi(1, total - honderos - brutos - corredores)
+	for i in bandidos:
+		tipos.append("bandit")
+	for i in honderos:
+		tipos.append("slinger")
+	for i in brutos:
+		tipos.append("brute")
+	for i in corredores:
+		tipos.append("runner")
+	return tipos
 
 
 ## Cierre sin recompensa (fallo, abandono o desmontaje): libera a los vivos y los
