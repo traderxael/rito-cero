@@ -135,13 +135,14 @@ func _build_volume() -> void:
 	_volume = AttackVolumeScript.new()
 	_volume.name = "AttackVolume"
 	_model.add_child(_volume)
-	# Capa 2: Rito. Capa 16: el moloso, que es otro objetivo del bandido y no puede
-	# quedarse fuera del tajo solo porque comparte capa con Rito.
+	# Capa 2: Rito. Capa 16: el moloso. Capa 32: el escolta de la mision, otro
+	# objetivo valido de los bandidos y no puede quedar fuera del tajo solo porque
+	# comparte capa con Rito.
 	#
 	# Alcance 1,2 con radio 0,8 cubre de 0,4 a 2,0 m. Con el volumen a 1,9 --igual que la
 	# distancia de parada-- cualquier objetivo algo mas cerca de lo previsto queda fuera de la
 	# esfera y el NPC golpea al aire.
-	_volume.setup(1.2, 0.8, 2 | 16)
+	_volume.setup(1.2, 0.8, 2 | 16 | 32)
 
 
 func _physics_process(delta: float) -> void:

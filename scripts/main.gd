@@ -26,6 +26,7 @@ const TechMenuScript := preload("res://scripts/ui/tech_menu.gd")
 const MenuCoordinatorScript := preload("res://scripts/ui/menu_coordinator.gd")
 const InventoryMenuScript := preload("res://scripts/ui/inventory_menu.gd")
 const DamageNumberScript := preload("res://scripts/fx/damage_number.gd")
+const EscortSiteScript := preload("res://scripts/missions/escort_site.gd")
 
 var _combatant: Combatant
 var _progression: Node
@@ -34,6 +35,7 @@ var _slave: SlaveScript
 var _missions: MissionSystem
 var _camp: Node3D
 var _defense: Node3D
+var _escort: Node3D
 var _world_event: Node
 var _poi_ref: Dictionary = {}
 var _terrain_ref: Terrain3D
@@ -305,11 +307,17 @@ func _on_mission_started(mision: Dictionary) -> void:
 			return
 		_close_defense()
 		_defense = DefenseSite.begin(self, centro, _terrain_ref, _missions, _rito_ref)
+	elif tipo == "escort":
+		if not _poi_ref.has("ruinas") or not _poi_ref.has("cueva") or _terrain_ref == null or _rito_ref == null:
+			return
+		_close_escort()
+		_escort = EscortSiteScript.begin(self, _missions, _rito_ref, _poi_ref["ruinas"], _poi_ref["cueva"], _terrain_ref)
 
 
 func _on_mission_completed(_mision: Dictionary, _recompensas: Dictionary) -> void:
 	_close_camp()
 	_close_defense()
+	_close_escort()
 	_clear_objective_marker()
 	_save_progress()
 
@@ -317,12 +325,14 @@ func _on_mission_completed(_mision: Dictionary, _recompensas: Dictionary) -> voi
 func _on_mission_failed(_mision: Dictionary) -> void:
 	_close_camp()
 	_close_defense()
+	_close_escort()
 	_clear_objective_marker()
 
 
 func _on_mission_abandoned(_mision: Dictionary) -> void:
 	_close_camp()
 	_close_defense()
+	_close_escort()
 	_clear_objective_marker()
 
 
@@ -436,6 +446,16 @@ func _close_defense() -> void:
 	_defense.call("finish")
 	_defense.queue_free()
 	_defense = null
+
+
+## Desmonta la escolta y libera a sus emboscadores vivos.
+func _close_escort() -> void:
+	if _escort == null or not is_instance_valid(_escort):
+		_escort = null
+		return
+	_escort.call("finish")
+	_escort.queue_free()
+	_escort = null
 
 
 func _unhandled_input(event: InputEvent) -> void:

@@ -668,6 +668,8 @@ func _refresh_mission_label() -> void:
 	var tipo := str(_active_mission.get("type", ""))
 	if tipo == "defense":
 		_mission_label.text = "Oleada %d/3" % _defense_wave(_mission_current)
+	elif tipo == "escort":
+		_mission_label.text = "Escolta: sigue al aliado"
 	else:
 		_mission_label.text = "Bandidos restantes: %d" % maxi(_mission_goal - _mission_current, 0)
 
