@@ -284,6 +284,29 @@ static func make_hispaniens() -> ArrayMesh:
 	return MeshFactoryScript._merge(parts)
 
 
+## Escudo del bruto: tabla de madera con umbo metalico, para el antebrazo izquierdo.
+static func make_shield() -> ArrayMesh:
+	var parts: Array = []
+	var board := BoxMesh.new()
+	board.size = Vector3(0.65, 0.85, 0.08)
+	parts.append({
+		"mesh": board,
+		"transform": Transform3D(Basis(), Vector3.ZERO),
+		"color": Color(0.42, 0.30, 0.16),
+	})
+	var boss := SphereMesh.new()
+	boss.radius = 0.08
+	boss.height = 0.16
+	boss.radial_segments = 8
+	boss.rings = 4
+	parts.append({
+		"mesh": boss,
+		"transform": Transform3D(Basis(), Vector3(0, 0, 0.08)),
+		"color": Color(0.55, 0.57, 0.60),
+	})
+	return MeshFactoryScript._merge(parts)
+
+
 ## La piedra del hondero: una esfera pequena y gris, sin astil.
 static func make_stone() -> ArrayMesh:
 	var parts: Array = []

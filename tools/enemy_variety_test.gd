@@ -8,7 +8,7 @@ const HOSTILE := preload("res://scripts/npc/hostile_npc.gd")
 const BanditCampScript := preload("res://scripts/missions/bandit_camp.gd")
 const CombatantScript := preload("res://scripts/combat/combatant.gd")
 
-const EXPECTED_CHECKS := 13
+const EXPECTED_CHECKS := 22
 
 var _failures := 0
 var _checks_run := 0
@@ -19,6 +19,7 @@ func _init() -> void:
 	_test_composition()
 	await _test_spawn_bandit_kind_y_mutadores()
 	await _test_hondero()
+	await _test_bruto()
 	if _checks_run != EXPECTED_CHECKS:
 		_failures += 1
 		print("FAIL solo se ejecutaron ", _checks_run, " de ", EXPECTED_CHECKS, " checks")
@@ -150,3 +151,37 @@ func _test_hondero() -> void:
 	_check(vida < 100.0, "la piedra del hondero dana al jugador")
 	stub2.queue_free()
 	hondero2.queue_free()
+
+
+func _test_bruto() -> void:
+	await process_frame
+	_make_floor()
+	var stub := _make_player_stub(Vector3(4, 1.4, 0))
+	var bruto: CharacterBody3D = BanditCampScript.spawn_bandit(root, Vector3.ZERO, 0.0, null, stub, "brute")
+	_check(is_equal_approx(float(bruto.get("max_health")), 140.0), "el bruto tiene 140 de vida")
+	_check(is_equal_approx(float(bruto.get("chase_speed")), 2.6), "el bruto persigue a 2,6")
+	var combatiente: Node = bruto.get_node("Combatant")
+	var delante := Node3D.new()
+	root.add_child(delante)
+	delante.global_position = bruto.global_position + Vector3(0, 0, 3)
+	var manejado: bool = bool(bruto.call("receive_attack", 40.0, delante))
+	_check(bool(manejado), "de frente el golpe se bloquea (manejado)")
+	_check(is_equal_approx(float(combatiente.get("health")), 130.0), "de frente solo entra la cuarta parte")
+	_check(str(bruto.get("state")) != "STUN", "de frente el bruto no se aturde")
+	bruto.call("stagger", 0.7)
+	_check(str(bruto.get("state")) != "STUN", "un golpe recien bloqueado no lo aturde")
+	var detras := Node3D.new()
+	root.add_child(detras)
+	detras.global_position = bruto.global_position - Vector3(0, 0, 3)
+	var libre: bool = bool(bruto.call("receive_attack", 40.0, detras))
+	_check(not bool(libre), "por la espalda el golpe no se maneja (entra normal)")
+	if not libre:
+		combatiente.call("take_damage", 40.0, detras.global_position)
+	_check(is_equal_approx(float(combatiente.get("health")), 90.0), "por la espalda entra el dano completo")
+	combatiente.call("setup", 140.0)
+	combatiente.call("take_damage", 40.0, delante.global_position)
+	_check(is_equal_approx(float(combatiente.get("health")), 100.0), "el pilum hace dano completo al bruto")
+	bruto.queue_free()
+	stub.queue_free()
+	delante.queue_free()
+	detras.queue_free()

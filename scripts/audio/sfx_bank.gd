@@ -13,7 +13,7 @@ const MIX_RATE := 22050
 const NAMES: Array[String] = [
 	"swing", "swing_heavy", "throw", "hit", "heavy_hit", "kill", "hurt",
 	"dodge", "step", "bark", "enemy_hit", "enemy_die", "death", "ui", "pickup", "wind",
-	"critical",
+	"critical", "block",
 ]
 
 static var _cache: Dictionary = {}
@@ -58,6 +58,8 @@ static func get_stream(name: String) -> AudioStreamWAV:
 			stream = _thud(0.36, 48.0, 22.0, 1.20, 0.62, name)
 		"wind":
 			stream = _wind(name)
+		"block":
+			stream = _block(name)
 		_:
 			stream = _click(name)
 	_cache[name] = stream
@@ -189,6 +191,23 @@ static func _pickup(seed_name: String) -> AudioStreamWAV:
 		phase += TAU * freq / MIX_RATE
 		var env := exp(-t * 18.0)
 		samples[i] = sin(phase) * env * 0.55 + rng.randf_range(-1.0, 1.0) * env * 0.08
+	return _to_wav(samples)
+
+
+## Bloqueo del escudo: golpe metalico seco, dos tonos altos con decaimiento rapido.
+static func _block(seed_name: String) -> AudioStreamWAV:
+	var rng := _rng(seed_name)
+	var count := int(0.14 * MIX_RATE)
+	var samples := PackedFloat32Array()
+	samples.resize(count)
+	var phase_a := 0.0
+	var phase_b := 0.0
+	for i in count:
+		var t := float(i) / float(MIX_RATE)
+		phase_a += TAU * 2200.0 / MIX_RATE
+		phase_b += TAU * 3100.0 / MIX_RATE
+		var env := exp(-t * 55.0)
+		samples[i] = (sin(phase_a) * 0.4 + sin(phase_b) * 0.3 + rng.randf_range(-1.0, 1.0) * 0.25) * env
 	return _to_wav(samples)
 
 
