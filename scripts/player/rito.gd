@@ -61,6 +61,25 @@ const DODGE_INVULNERABLE := 0.35
 const DODGE_COOLDOWN := 0.8
 const DODGE_ANIM_SPEED := 1.6
 
+## La guardia: barra propia, reduccion frontal y ruptura. La defensa es activa: la
+## esquiva sigue siendo la forma de evitar el dano por completo.
+const GUARD_MAX := 100.0
+const GUARD_DAMAGE_REDUCTION := 0.8
+const GUARD_COST_MULT := 1.1
+const GUARD_REGEN := 22.0
+const GUARD_REGEN_DELAY := 0.7
+const GUARD_SPEED_MULT := 0.55
+const GUARD_BREAK_DAMAGE := 0.5
+const GUARD_BREAK_STUN := 0.8
+const GUARD_BREAK_LOCK := 1.5
+const GUARD_REFRACTORY_REFILL := 25.0
+
+## El parry es una ventana corta desde la pulsacion; el riposte, la recompensa.
+const PARRY_WINDOW := 0.20
+const PARRY_STAGGER := 1.1
+const RIPOSTE_WINDOW := 1.5
+const RIPOSTE_MULT := 1.75
+
 ## El empujon fisico se desvanece solo. Si se sumara a la velocidad del controlador, la
 ## aceleracion lo borraria en cuatro fotogramas y no se veria nada.
 const PUSH_DECAY := 8.0
@@ -79,6 +98,10 @@ const LAND_DIP_AMOUNT := 0.06
 const LAND_DIP_DECAY := 0.3
 
 signal died
+signal guard_changed(current: float, maximum: float)
+signal guard_broken
+signal parried
+signal riposte_changed(active: bool)
 
 var combatant: Node
 
@@ -108,6 +131,7 @@ var _resolved_hit_strong := ""
 var _resolved_death := ""
 var _resolved_roll := ""
 var _resolved_land := ""
+var _resolved_guard := ""
 var _respawn_timer := 0.0
 var _dead := false
 var _spawn_point := Vector3.ZERO
@@ -123,6 +147,12 @@ var _ragdoll_active := false
 ## El empujon fisico y el estado de la esquiva.
 var _push_velocity := Vector3.ZERO
 var _dodge_ready_at := 0.0
+var _guard := GUARD_MAX
+var _guarding := false
+var _guard_regen_at := 0.0
+var _guard_lock_until := 0.0
+var _parry_until := 0.0
+var _riposte_until := 0.0
 var _was_on_floor := true
 var _coyote_until := 0.0
 var _jump_buffered_at := -1.0
@@ -178,6 +208,7 @@ func _build_model() -> void:
 		_resolved_death = _resolve_animation(ANIM_DEATH)
 		_resolved_roll = _resolve_animation(ANIM_ROLL)
 		_resolved_land = _resolve_animation(ANIM_LAND)
+		_resolved_guard = _resolve_animation(["Sword_Idle", "Idle_Loop"])
 	if skeleton != null:
 		RitoOutfitScript.recolor_skin(mannequin)
 		var face: Texture2D = null
@@ -233,8 +264,11 @@ func _physics_process(delta: float) -> void:
 	var basis_yaw := camera_yaw.global_transform.basis
 	var direction := (basis_yaw * Vector3(input.x, 0.0, -input.y)).normalized()
 
-	# Movimiento con aceleración
-	var target_speed := RUN_SPEED if Input.is_action_pressed("sprint") else WALK_SPEED
+	# Movimiento con aceleración. La guardia impide esprintar y frena el paso.
+	_update_guard(delta)
+	var target_speed := RUN_SPEED if Input.is_action_pressed("sprint") and not _guarding else WALK_SPEED
+	if _guarding:
+		target_speed *= GUARD_SPEED_MULT
 	var target_velocity := direction * target_speed
 	velocity.x = move_toward(velocity.x, target_velocity.x, ACCELERATION * delta * target_speed)
 	velocity.z = move_toward(velocity.z, target_velocity.z, ACCELERATION * delta * target_speed)
@@ -289,6 +323,12 @@ func _update_model(delta: float, direction: Vector3) -> void:
 		_lock_priority = 0
 		_animation_state = ""
 	if is_locked():
+		return
+
+	if _guarding and _resolved_guard != "":
+		if _resolved_guard != _animation_state:
+			_animation_state = _resolved_guard
+			animation_player.play(_resolved_guard, BLEND_TIME)
 		return
 
 	var planar_speed := Vector2(velocity.x, velocity.z).length()
@@ -527,6 +567,7 @@ func respawn(at: Vector3) -> void:
 	_lock_priority = 0
 	_lock_until = 0.0
 	_animation_state = ""
+	_reset_guard_state()
 	_restore_camera_height()
 
 
@@ -664,6 +705,112 @@ func is_dodge_ready() -> bool:
 	return _now() >= _dodge_ready_at
 
 
+## La guardia se levanta con Q mantenido. No se puede levantar muerto, durante un
+## ataque bloqueado ni mientras dura la ruptura.
+func set_guarding(value: bool) -> void:
+	if value:
+		if not is_alive() or is_locked() or _now() < _guard_lock_until:
+			return
+		_guarding = true
+		return
+	_guarding = false
+	_parry_until = 0.0
+
+
+## Pulsa Q: levanta la guardia y abre la ventana de parry. La ventana no se acumula:
+## cada pulsacion reinicia los 0,20 s.
+func try_parry() -> bool:
+	set_guarding(true)
+	if not _guarding:
+		return false
+	_parry_until = _now() + PARRY_WINDOW
+	return true
+
+
+func is_guarding() -> bool:
+	return _guarding
+
+
+func guard_value() -> float:
+	return _guard
+
+
+func is_riposte_ready() -> bool:
+	return _now() <= _riposte_until
+
+
+## Devuelve 1,75 si el golpe consume el contraataque; 1,0 en cualquier otro caso.
+func consume_riposte() -> float:
+	if _now() > _riposte_until:
+		return 1.0
+	_riposte_until = 0.0
+	riposte_changed.emit(false)
+	return RIPOSTE_MULT
+
+
+## El ataque enemigo pasa por aqui cuando el cuerpo es Rito. Devuelve true si la
+## guardia consumio el golpe; false deja que AttackVolume aplique el dano normal.
+func receive_attack(amount: float, source: Node3D) -> bool:
+	if not is_alive() or not _guarding or source == null or combatant == null:
+		return false
+	var to_source := source.global_position - global_position
+	to_source.y = 0.0
+	var forward := -model.global_transform.basis.z
+	forward.y = 0.0
+	if to_source.length() < 0.01 or forward.length() < 0.01:
+		return false
+	if forward.normalized().dot(to_source.normalized()) < 0.15:
+		return false
+
+	# El parry se comprueba antes del coste de guardia: un acierto no gasta barra.
+	if _now() <= _parry_until:
+		_parry_until = 0.0
+		_riposte_until = _now() + RIPOSTE_WINDOW
+		if source.has_method("stagger"):
+			source.call("stagger", PARRY_STAGGER)
+		parried.emit()
+		riposte_changed.emit(true)
+		return true
+
+	var cost := amount * GUARD_COST_MULT
+	if cost >= _guard:
+		_guard = GUARD_REFRACTORY_REFILL
+		_guarding = false
+		_guard_lock_until = _now() + GUARD_BREAK_LOCK
+		_guard_regen_at = _now() + GUARD_REGEN_DELAY
+		combatant.take_damage(amount * GUARD_BREAK_DAMAGE, source.global_position)
+		guard_changed.emit(_guard, GUARD_MAX)
+		guard_broken.emit()
+		play_one_shot(_resolved_hit_strong, GUARD_BREAK_STUN, PRIORITY_HIT)
+		return true
+
+	_guard = maxf(_guard - cost, 0.0)
+	_guard_regen_at = _now() + GUARD_REGEN_DELAY
+	combatant.take_damage(amount * (1.0 - GUARD_DAMAGE_REDUCTION), source.global_position)
+	guard_changed.emit(_guard, GUARD_MAX)
+	return true
+
+
+## La barra se regenera sola tras el retardo, nunca mientras se mantiene la guardia.
+func _update_guard(delta: float) -> void:
+	if _guarding or _guard >= GUARD_MAX or _now() < _guard_regen_at:
+		return
+	_guard = minf(_guard + GUARD_REGEN * delta, GUARD_MAX)
+	guard_changed.emit(_guard, GUARD_MAX)
+
+
+func _reset_guard_state() -> void:
+	_guard = GUARD_MAX
+	_guarding = false
+	_guard_regen_at = 0.0
+	_guard_lock_until = 0.0
+	_parry_until = 0.0
+	if _riposte_until > 0.0:
+		_riposte_until = 0.0
+		riposte_changed.emit(false)
+	guard_changed.emit(_guard, GUARD_MAX)
+
+
 func is_ragdoll_active() -> bool:
 	return _ragdoll_active
 
@@ -687,6 +834,7 @@ func _on_damaged(amount: float, _source_position: Vector3) -> void:
 
 func _on_died(_source_position: Vector3) -> void:
 	_dead = true
+	_reset_guard_state()
 	_respawn_timer = RESPAWN_DELAY
 	_ragdoll_timer = RAGDOLL_DELAY
 	play_one_shot(_resolved_death, RESPAWN_DELAY, PRIORITY_DYING)

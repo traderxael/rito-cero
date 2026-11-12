@@ -108,11 +108,20 @@ func _process(_delta: float) -> void:
 		if Input.is_action_just_pressed(WEAPON_ACTIONS[i]):
 			_switch(i)
 			break
+	if Input.is_action_just_pressed("block"):
+		_rito.try_parry()
+	if Input.is_action_pressed("block"):
+		_rito.set_guarding(true)
+	elif _rito.is_guarding():
+		_rito.set_guarding(false)
 	if Input.is_action_just_pressed("attack"):
+		_rito.set_guarding(false)
 		_try_attack(false)
 	elif Input.is_action_just_pressed("heavy_attack"):
+		_rito.set_guarding(false)
 		_try_attack(true)
 	if Input.is_action_just_pressed("dodge"):
+		_rito.set_guarding(false)
 		_try_dodge()
 
 
@@ -319,16 +328,23 @@ func _attack_animation(heavy: bool) -> String:
 	return _resolved_attack
 
 
-func _on_landed(target: Node, damage: float, was_stunned: bool = false) -> void:
+func _on_landed(target: Node, damage: float, was_stunned: bool = false, allow_riposte: bool = true) -> void:
 	var combatant := target.get_node_or_null("Combatant") as Combatant
 	# El critico se decide al aterrizar, que es cuando se sabe a quien se ha
 	# golpeado. `was_stunned` llega capturado ANTES del dano base: si se leyera el
 	# estado ahora, el STUN que el propio golpe acaba de provocar haria critico
 	# cada impacto. El volumen ya quito el dano base: el extra va aparte.
 	var critical := _is_behind(target) or was_stunned
-	if critical and combatant != null and combatant.is_alive():
-		combatant.take_damage(damage * (CRITICAL_MULTIPLIER - 1.0), _rito.global_position)
-	var total := damage * (CRITICAL_MULTIPLIER if critical else 1.0)
+	var riposte := _rito.consume_riposte() if allow_riposte else 1.0
+	var multiplier := CRITICAL_MULTIPLIER if critical else 1.0
+	if riposte > 1.0:
+		# El contraataque no se apila con el critico: sustituye el multiplicador,
+		# pero mantiene el feedback dorado y el aturdimiento.
+		critical = true
+		multiplier = riposte
+	if multiplier > 1.0 and combatant != null and combatant.is_alive():
+		combatant.take_damage(damage * (multiplier - 1.0), _rito.global_position)
+	var total := damage * multiplier
 	var killed := combatant != null and not combatant.is_alive()
 	if killed and _counts_as_bandit(target):
 		add_kill()
@@ -360,7 +376,8 @@ func _on_landed(target: Node, damage: float, was_stunned: bool = false) -> void:
 
 
 func _on_projectile_landed(target: Node, damage: float, was_stunned: bool = false) -> void:
-	_on_landed(target, damage, was_stunned)
+	# El pilum no es un golpe de contraataque: la ventana de riposte sigue viva.
+	_on_landed(target, damage, was_stunned, false)
 
 
 ## El Praetorian no es un bandido: su muerte no suma al objetivo de eliminar bandidos.

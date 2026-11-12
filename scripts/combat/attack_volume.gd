@@ -41,14 +41,14 @@ func setup(reach: float, radius: float, target_mask: int) -> void:
 	_shape.position = Vector3(0, 1.2, reach)
 
 
-func begin_swing(damage: float, source: Node3D, open_at: float, close_at: float, clip_length: float) -> void:
+func begin_swing(damage: float, source: Node3D, open_at: float, close_at: float, clip_length: float, windup: float = 0.0) -> void:
 	_damage = damage
 	_source = source
 	_hit.clear()
 	_swinging = true
 	_started_at = _now()
-	_open_at = _started_at + clip_length * open_at
-	_close_at = _started_at + clip_length * close_at
+	_open_at = _started_at + windup + clip_length * open_at
+	_close_at = _started_at + windup + clip_length * close_at
 	_open = false
 	if clip_length * open_at <= 0.0:
 		_open = true
@@ -92,7 +92,12 @@ func _try_hit(body: PhysicsBody3D) -> void:
 	# El critico se decide con el estado ANTERIOR al golpe: el bandido entra en STUN
 	# dentro de take_damage, asi que leerlo despues convertiria cada impacto en critico.
 	var was_stunned := _state_is_stunned(body)
-	combatant.take_damage(_damage, _source.global_position if _source != null else global_position)
+	var source_position := _source.global_position if _source != null else global_position
+	var handled := false
+	if body.has_method("receive_attack"):
+		handled = bool(body.call("receive_attack", _damage, _source))
+	if not handled:
+		combatant.take_damage(_damage, source_position)
 	landed.emit(body, _damage, was_stunned)
 
 

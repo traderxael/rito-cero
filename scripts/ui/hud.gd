@@ -50,6 +50,9 @@ var _coins_label: Label
 var _panis_label: Label
 var _victory_label: Label
 var _combo_label: Label
+var _guard_fill: ColorRect
+var _parry_label: Label
+var _riposte_label: Label
 var _xp_fill: ColorRect
 var _xp_level_label: Label
 var _mission_label: Label
@@ -96,6 +99,8 @@ func setup(player: Node3D, terrain: Terrain3D, center: Vector3, combat: Node,
 	if combatant != null:
 		_build_health(combatant, combat)
 
+	_build_guard(player)
+	_build_defense_labels()
 	_build_combo_label()
 	_build_arsenal(combat)
 	if progression != null:
@@ -108,6 +113,83 @@ func setup(player: Node3D, terrain: Terrain3D, center: Vector3, combat: Node,
 ## completo y las cifras de la activa van debajo, que es lo que se consulta al pelear.
 ## El cartel del combo: aparece en el segundo golpe de la cadena y se apaga solo.
 ## Sin el, el jugador no sabe que esta encadenando.
+## Barra fina bajo la vida: se vacia al bloquear y se rellena al soltar la guardia.
+func _build_guard(player: Node) -> void:
+	var background := ColorRect.new()
+	background.color = Color(0.06, 0.05, 0.04, 0.55)
+	background.size = Vector2(190, 6)
+	background.position = Vector2(18, 58)
+	background.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(background)
+
+	_guard_fill = ColorRect.new()
+	_guard_fill.color = Color(0.42, 0.62, 0.78)
+	_guard_fill.size = Vector2(186, 4)
+	_guard_fill.position = Vector2(20, 59)
+	_guard_fill.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(_guard_fill)
+
+	if player.has_signal("guard_changed"):
+		player.connect("guard_changed", Callable(self, "_on_guard_changed"))
+	if player.has_signal("riposte_changed"):
+		player.connect("riposte_changed", Callable(self, "_on_riposte_changed"))
+	if player.has_signal("parried"):
+		player.connect("parried", Callable(self, "_on_parried"))
+
+
+func _build_defense_labels() -> void:
+	_parry_label = Label.new()
+	_parry_label.text = "PARRY"
+	_parry_label.add_theme_font_size_override("font_size", 30)
+	_parry_label.add_theme_color_override("font_color", Color(1.0, 0.82, 0.30))
+	_parry_label.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.85))
+	_parry_label.add_theme_constant_override("shadow_offset_x", 2)
+	_parry_label.add_theme_constant_override("shadow_offset_y", 2)
+	_parry_label.position = Vector2(640.0 - 80.0, 112.0)
+	_parry_label.size = Vector2(160, 36)
+	_parry_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_parry_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_parry_label.visible = false
+	add_child(_parry_label)
+
+	_riposte_label = Label.new()
+	_riposte_label.text = "CONTRAATAQUE"
+	_riposte_label.add_theme_font_size_override("font_size", 17)
+	_riposte_label.add_theme_color_override("font_color", Color(1.0, 0.74, 0.22))
+	_riposte_label.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.85))
+	_riposte_label.add_theme_constant_override("shadow_offset_x", 1)
+	_riposte_label.add_theme_constant_override("shadow_offset_y", 1)
+	_riposte_label.position = Vector2(640.0 - 120.0, 148.0)
+	_riposte_label.size = Vector2(240, 24)
+	_riposte_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_riposte_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_riposte_label.visible = false
+	add_child(_riposte_label)
+
+
+func _on_guard_changed(current: float, maximum: float) -> void:
+	if _guard_fill == null:
+		return
+	_guard_fill.size.x = 186.0 * clampf(current / maxf(maximum, 1.0), 0.0, 1.0)
+
+
+func _on_parried() -> void:
+	if _parry_label == null:
+		return
+	_parry_label.visible = true
+	_parry_label.modulate.a = 1.0
+	_parry_label.scale = Vector2.ONE * 1.3
+	var tween := create_tween()
+	tween.set_parallel(true)
+	tween.tween_property(_parry_label, "scale", Vector2.ONE, 0.12)
+	tween.tween_property(_parry_label, "modulate:a", 0.0, 0.45).set_delay(0.15)
+
+
+func _on_riposte_changed(active: bool) -> void:
+	if _riposte_label != null:
+		_riposte_label.visible = active
+
+
 func _build_combo_label() -> void:
 	_combo_label = Label.new()
 	_combo_label.add_theme_font_size_override("font_size", 30)

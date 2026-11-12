@@ -28,6 +28,9 @@ const PUSH_STRENGTH := 9.0
 ## El clip Push dura 2,67 s. A esta velocidad dura algo mas de un segundo y el tajo
 ## cae en un momento razonable.
 const PUSH_ANIM_SPEED := 1.5
+## El ataque se lee: el volumen de dano no se abre hasta pasado este windup.
+const ATTACK_WINDUP := 0.35
+const ATTACK_ANIM_SPEED := 0.7
 
 var state := "PATROL"
 
@@ -209,14 +212,12 @@ func _try_attack() -> void:
 	# Cada segundo ataque es un empujon: menos dano, pero mete a Rito en el aire.
 	var pushing := _attack_count % PUSH_EVERY == 0
 	var clip_name := "Push" if pushing else "Sword_Attack"
-	_play(clip_name, PUSH_ANIM_SPEED if pushing else -1.0)
+	_play(clip_name, ATTACK_ANIM_SPEED)
 	var clip_length := 0.5
 	if _anim != null and _anim.has_animation(clip_name):
-		clip_length = _anim.get_animation(clip_name).length
-		if pushing:
-			clip_length /= PUSH_ANIM_SPEED
+		clip_length = _anim.get_animation(clip_name).length / ATTACK_ANIM_SPEED
 	_swing_until = _now() + clip_length
-	_volume.begin_swing(PUSH_DAMAGE if pushing else attack_damage, self, 0.25, 0.55, clip_length)
+	_volume.begin_swing(PUSH_DAMAGE if pushing else attack_damage, self, 0.25, 0.55, clip_length, ATTACK_WINDUP)
 	if pushing:
 		_push_target()
 	var sfx := _sfx()
