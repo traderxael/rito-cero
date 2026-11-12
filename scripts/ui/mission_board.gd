@@ -277,7 +277,7 @@ func _refresh() -> void:
 func _active_text() -> String:
 	if _activa.is_empty():
 		return "Sin misión activa"
-	var done := int(_activa.get("kills_done", 0))
+	var done := int(_activa.get("progress", 0))
 	var targets := int(_activa.get("targets", 0))
 	if str(_activa.get("type", "")) == "purge":
 		return "Bandidos restantes: %d" % maxi(targets - done, 0)
@@ -363,7 +363,7 @@ func _on_mission_started(mision: Dictionary) -> void:
 
 func _on_mission_progress(current: int, goal: int) -> void:
 	if not _activa.is_empty():
-		_activa["kills_done"] = current
+		_activa["progress"] = current
 		_activa["targets"] = goal
 	if _open:
 		_refresh()

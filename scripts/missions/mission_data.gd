@@ -40,6 +40,34 @@ const TEMPLATES := {
 		"poi": "muro",
 		"hidden": true,
 	},
+	"escort": {
+		"type": "escort",
+		"title": "Escolta al superviviente",
+		"brief": "Acompaña al superviviente desde las ruinas hasta la cueva. Si cae, la misión falla.",
+		"xp": 120,
+		"coins": [60, 100],
+		"targets": 1,
+		"poi": "ruinas",
+	},
+	"collect": {
+		"type": "collect",
+		"title": "Recolección de suministros",
+		"brief": "Recoge los suministros dispersos junto al Muro mientras los bandidos hostigan.",
+		"xp": 100,
+		"coins": [50, 90],
+		"targets": 6,
+		"poi": "muro",
+	},
+	"timed": {
+		"type": "timed",
+		"title": "Purga contrarreloj",
+		"brief": "Limpia la Columna rota antes de que acabe el tiempo.",
+		"xp": 90,
+		"coins": [40, 70],
+		"targets": 4,
+		"poi": "columna",
+		"time_limit": 90,
+	},
 }
 
 
@@ -61,7 +89,7 @@ static func make_instance(id: String, level: int) -> Dictionary:
 		"coins": [roundi(int(banda[0]) * factor), roundi(int(banda[1]) * factor)],
 		"targets": int(plantilla["targets"]),
 		"poi": str(plantilla["poi"]),
-		"kills_done": 0,
+		"progress": 0,
 	}
 	if str(plantilla["type"]) == "purge":
 		inst["targets"] = 4 + level / 4
@@ -69,6 +97,8 @@ static func make_instance(id: String, level: int) -> Dictionary:
 		inst["waves"] = (plantilla["waves"] as Array).duplicate()
 	if plantilla.has("hidden"):
 		inst["hidden"] = bool(plantilla["hidden"])
+	if plantilla.has("time_limit"):
+		inst["time_limit"] = int(plantilla["time_limit"])
 	return inst
 
 

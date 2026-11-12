@@ -155,18 +155,26 @@ func start_mission(template_id: String) -> bool:
 	return true
 
 
-## Registra una baja de la mision activa. Al alcanzar los objetivos completa la
-## mision internamente (y paga una sola vez) y devuelve true.
-func register_mission_kill() -> bool:
+## Registra progreso en la mision activa. Al alcanzar los objetivos completa la
+## mision internamente (y paga una sola vez) y devuelve true. Es el camino general:
+## baja de un bandido, suministro recogido, oleada superada o objetivo alcanzado.
+func register_progress(n: int = 1) -> bool:
 	if not is_mission_active():
 		return false
-	var done := int(_active.get("kills_done", 0)) + 1
-	_active["kills_done"] = done
+	var done := int(_active.get("progress", 0)) + int(n)
+	_active["progress"] = done
 	mission_progress.emit(done, int(_active.get("targets", 0)))
 	if done >= int(_active.get("targets", 0)):
 		complete_mission()
 		return true
 	return false
+
+
+## Registra una baja de la mision activa: un paso mas de progreso. Se conserva
+## por compatibilidad con los sitios de mision existentes (BanditCamp,
+## DefenseSite).
+func register_mission_kill() -> bool:
+	return register_progress(1)
 
 
 ## Completa la mision activa y paga: XP, monedas (techo de la banda + denarios del

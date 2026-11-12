@@ -637,8 +637,8 @@ func _test_world_event_rules() -> void:
 	var ids_disponibles: Array = []
 	for mision in sistema.available_missions():
 		ids_disponibles.append(str((mision as Dictionary).get("id", "")))
-	_check(not ids_disponibles.has("world_event") and ids_disponibles.size() == 2,
-		"available_missions excluye la plantilla oculta")
+	_check(not ids_disponibles.has("world_event") and ids_disponibles.size() == 5,
+		"available_missions excluye la plantilla oculta y lista las 5 de tablero")
 	var iniciadas: Array = []
 	var completadas: Array = []
 	sistema.mission_started.connect(func(mision: Dictionary) -> void:
@@ -712,8 +712,8 @@ func _test_board_logic() -> void:
 	_check(bool(tablero.call("is_open")), "open deja el tablero abierto")
 	_check(not combate.input_enabled, "open deshabilita el input de combate")
 	var ids: Array = tablero.call("available_ids") as Array
-	_check(ids.size() == 2 and ids.has("bandit_purge") and ids.has("city_defense"),
-		"el tablero lista las dos misiones disponibles")
+	_check(ids.size() == 5 and ids.has("bandit_purge") and ids.has("city_defense") and ids.has("escort") and ids.has("collect") and ids.has("timed"),
+		"el tablero lista las 5 misiones disponibles")
 	var acepta := tablero.call("accept_button", "bandit_purge") as Button
 	_check(acepta != null, "hay boton Aceptar para la purga")
 	(acepta as Button).emit_signal("pressed")

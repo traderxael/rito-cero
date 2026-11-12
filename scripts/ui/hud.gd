@@ -630,7 +630,7 @@ func _on_xp_changed(total: int, needed: int, level: int) -> void:
 
 func _on_mission_started(mission: Dictionary) -> void:
 	_active_mission = mission.duplicate(true)
-	_mission_current = int(mission.get("kills_done", 0))
+	_mission_current = int(mission.get("progress", 0))
 	_mission_goal = int(mission.get("targets", 0))
 	_refresh_mission_label()
 
