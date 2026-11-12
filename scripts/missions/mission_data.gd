@@ -68,6 +68,30 @@ const TEMPLATES := {
 		"poi": "columna",
 		"time_limit": 90,
 	},
+	"bandit_purge_contract": {
+		"type": "purge",
+		"title": "Contrato: purga de bandidos",
+		"brief": "Contrato del pretorio: limpia la columna de bandidos con refuerzos enemigos.",
+		"xp": 60,
+		"coins": [30, 60],
+		"targets": 4,
+		"poi": "columna",
+		"min_level": 10,
+		"mutators": {"health": 1.5, "damage": 1.25, "speed": 1.15},
+		"reward_mult": 1.5,
+	},
+	"city_defense_contract": {
+		"type": "defense",
+		"title": "Contrato: defensa de la ciudad",
+		"brief": "Contrato del pretorio: defiende las ruinas de asaltantes reforzados.",
+		"xp": 150,
+		"coins": [80, 140],
+		"targets": 18,
+		"poi": "ruinas",
+		"min_level": 10,
+		"mutators": {"health": 1.5, "damage": 1.25, "speed": 1.15},
+		"reward_mult": 1.5,
+	},
 }
 
 
@@ -77,7 +101,7 @@ const TEMPLATES := {
 static func make_instance(id: String, level: int) -> Dictionary:
 	if not TEMPLATES.has(id):
 		return {}
-	var plantilla: Dictionary = TEMPLATES[id]
+	var plantilla: Dictionary = TEMPLATES[id] as Dictionary
 	var factor := 1.0 + 0.15 * float(level - 1)
 	var banda: Array = plantilla["coins"]
 	var inst := {
@@ -99,6 +123,15 @@ static func make_instance(id: String, level: int) -> Dictionary:
 		inst["hidden"] = bool(plantilla["hidden"])
 	if plantilla.has("time_limit"):
 		inst["time_limit"] = int(plantilla["time_limit"])
+	if plantilla.has("mutators"):
+		inst["mutators"] = (plantilla["mutators"] as Dictionary).duplicate()
+	if plantilla.has("min_level"):
+		inst["min_level"] = int(plantilla["min_level"])
+	if plantilla.has("reward_mult"):
+		var mult := float(plantilla["reward_mult"])
+		inst["xp"] = roundi(inst["xp"] * mult)
+		inst["coins"] = [roundi(inst["coins"][0] * mult), roundi(inst["coins"][1] * mult)]
+		inst["reward_mult"] = mult
 	return inst
 
 

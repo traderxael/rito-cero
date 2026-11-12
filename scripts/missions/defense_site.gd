@@ -1,4 +1,4 @@
-class_name DefenseSite
+﻿class_name DefenseSite
 extends Node3D
 
 ## Sitio de defensa para la mision de ciudad: aguanta tres oleadas de bandidos
@@ -31,13 +31,12 @@ var _sistema: MissionSystem
 var _objetivo: Node3D
 var _en_pausa := false
 var _pausa_restante := 0.0
-var _terminado := false
-
+var _terminado := false`r`nvar _mutators: Dictionary = {}`r`n
 
 ## Levanta el sitio de defensa en las ruinas y lanza la oleada 1 (4 bandidos
 ## en anillo a 18 m). El objetivo trae el Combatant de Rito para fallar la
 ## mision si el jugador cae a mitad de defensa.
-static func begin(parent: Node, ruins: Vector3, terrain: Variant, system: MissionSystem, target: Node3D) -> Node3D:
+static func begin(parent: Node, ruins: Vector3, terrain: Variant, system: MissionSystem, target: Node3D, mutators: Dictionary = {}) -> Node3D:
 	var sitio := DefenseSite.new()
 	sitio.name = "DefenseSite"
 	parent.add_child(sitio)
@@ -45,6 +44,7 @@ static func begin(parent: Node, ruins: Vector3, terrain: Variant, system: Missio
 	sitio._centro = ruins
 	sitio._terreno = terrain
 	sitio._objetivo = target
+	sitio._mutators = mutators
 	sitio._conectar_muerte(target)
 	sitio._spawn_wave(0)
 	return sitio
@@ -98,7 +98,7 @@ func _spawn_wave(indice: int) -> void:
 		if datos != null:
 			var altura: float = datos.get_height(Vector3(posicion.x, 0.0, posicion.z))
 			posicion.y = _centro.y if is_nan(altura) else altura
-		var bandido := BanditCamp.spawn_bandit(self, posicion, angulo, _terreno, _objetivo, tipos[i])
+		var bandido := BanditCamp.spawn_bandit(self, posicion, angulo, _terreno, _objetivo, tipos[i], null, _mutators)
 		(bandido.get_node("Combatant") as Combatant).died.connect(Callable(self, "_on_bandit_died"))
 		_bandidos.append(bandido)
 

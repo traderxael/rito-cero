@@ -7,6 +7,7 @@ const MeshFactoryScript := preload("res://scripts/world/mesh_factory.gd")
 const RomanNpcScript := preload("res://scripts/npc/hostile_npc.gd")
 const CaveEntranceScript := preload("res://scripts/world/cave_entrance.gd")
 const CaveInteriorScript := preload("res://scripts/world/cave_interior.gd")
+const HordeSiteScript := preload("res://scripts/missions/horde_site.gd")
 
 const COLOSSEUM_GLB := "res://assets/models/colosseum.glb"
 const PORTICO_DISTANCE := 34.0
@@ -54,6 +55,7 @@ func setup(terrain: Terrain3D, player: Node3D) -> void:
 	if colosseum_spot != Vector3.ZERO:
 		_build_colosseum(colosseum_spot)
 		_add_marker("Coliseo", colosseum_spot + Vector3(0, 30.0, 0))
+		_activador_coliseo(colosseum_spot)
 
 	for i in NPC_COUNT:
 		var angle := TAU * float(i) / float(NPC_COUNT) + 0.6

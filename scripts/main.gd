@@ -29,6 +29,7 @@ const DamageNumberScript := preload("res://scripts/fx/damage_number.gd")
 const EscortSiteScript := preload("res://scripts/missions/escort_site.gd")
 const CollectSiteScript := preload("res://scripts/missions/collect_site.gd")
 const TimedPurgeScript := preload("res://scripts/missions/timed_site.gd")
+const HordeSiteScript := preload("res://scripts/missions/horde_site.gd")
 
 var _combatant: Combatant
 var _progression: Node
@@ -38,7 +39,7 @@ var _missions: MissionSystem
 var _camp: Node3D
 var _defense: Node3D
 var _escort: Node3D
-var _collect: Node3D`r`nvar _timed: Node3D`r`nvar _world_event: Node
+var _collect: Node3D`r`nvar _timed: Node3D`r`nvar _horde: Node3D`r`nvar _world_event: Node
 var _poi_ref: Dictionary = {}
 var _terrain_ref: Terrain3D
 var _rito_ref: Node3D
@@ -332,6 +333,7 @@ func _on_mission_completed(_mision: Dictionary, _recompensas: Dictionary) -> voi
 	_close_escort()
 	_close_collect()
 	_close_timed()
+	_close_horde()
 	_clear_objective_marker()
 	_save_progress()
 
@@ -342,6 +344,7 @@ func _on_mission_failed(_mision: Dictionary) -> void:
 	_close_escort()
 	_close_collect()
 	_close_timed()
+	_close_horde()
 	_clear_objective_marker()
 
 
@@ -351,6 +354,7 @@ func _on_mission_abandoned(_mision: Dictionary) -> void:
 	_close_escort()
 	_close_collect()
 	_close_timed()
+	_close_horde()
 	_clear_objective_marker()
 
 
@@ -359,11 +363,13 @@ func _on_mission_abandoned(_mision: Dictionary) -> void:
 ## cubierta aunque BanditCamp no este (los dos caminos fallan una sola vez por
 ## el guardado de MissionSystem sin mision activa).
 func _on_player_died(_source_position: Vector3) -> void:
-	if _missions == null or not _missions.is_mission_active():
+	if _missions == null:
 		return
-	if _missions.active_type() == "purge":
-		_missions.fail_mission()
-		_close_camp()
+	_missions.reset_streak()
+	if _missions.is_mission_active():
+		if _missions.active_type() == "purge":
+			_missions.fail_mission()
+			_close_camp()
 
 
 ## Compra de armerÃ­a: pasa el multiplicador de daÃ±o del gladius al WeaponsHolder
@@ -494,6 +500,16 @@ func _close_timed() -> void:
 	_timed.call("finish")
 	_timed.queue_free()
 	_timed = null
+
+
+## Desmonta la horda y libera los bandidos vivos.
+func _close_horde() -> void:
+	if _horde == null or not is_instance_valid(_horde):
+		_horde = null
+		return
+	_horde.call("finish")
+	_horde.queue_free()
+	_horde = null
 
 
 func _unhandled_input(event: InputEvent) -> void:

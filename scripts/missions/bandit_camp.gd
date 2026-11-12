@@ -34,7 +34,7 @@ var _objetivo: Node3D
 ## El objetivo trae el Combatant de Rito para fallar la mision si el jugador cae
 ## a mitad de purga (igual que DefenseSite).
 static func spawn(parent: Node, center: Vector3, count: int, terrain: Variant,
-		system: MissionSystem, target: Node3D) -> Node3D:
+		system: MissionSystem, target: Node3D, mutators: Dictionary = {}) -> Node3D:
 	var camp := BanditCamp.new()
 	camp.name = "BanditCamp"
 	parent.add_child(camp)
@@ -53,7 +53,7 @@ static func spawn(parent: Node, center: Vector3, count: int, terrain: Variant,
 		if data != null:
 			var height: float = data.get_height(Vector3(position.x, 0.0, position.z))
 			position.y = center.y if is_nan(height) else height
-		var bandit := spawn_bandit(camp, position, angle, terrain, target, tipos[i])
+		var bandit := spawn_bandit(camp, position, angle, terrain, target, tipos[i], null, mutators)
 		(bandit.get_node("Combatant") as Combatant).died.connect(Callable(camp, "_on_bandit_died"))
 		camp._bandits.append(bandit)
 	return camp

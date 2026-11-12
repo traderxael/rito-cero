@@ -1,4 +1,4 @@
-class_name MissionSystem
+﻿class_name MissionSystem
 extends Node
 
 ## Nucleo de progresion: XP, nivel, denarios, rachas, recompensas, curacion y
@@ -56,6 +56,7 @@ var _cooldowns: Dictionary = {}
 var _rng: RandomNumberGenerator
 var _seeded := false
 var _paused_ambient: Array = []
+var horde_active := false
 
 
 func _init() -> void:
@@ -123,6 +124,9 @@ func available_missions() -> Array:
 			continue
 		if _in_cooldown(str(id)):
 			continue
+		var plantilla: Dictionary = MissionData.TEMPLATES[id] as Dictionary
+		if plantilla.has("min_level") and level < int(plantilla["min_level"]):
+			continue
 		lista.append(MissionData.make_instance(str(id), level))
 	return lista
 
@@ -145,7 +149,7 @@ func active_type() -> String:
 ## tambien las plantillas ocultas (world_event): estan en TEMPLATES para que
 ## start_mission las arranque, pero available_missions las excluye del tablero.
 func start_mission(template_id: String) -> bool:
-	if is_mission_active() or not MissionData.TEMPLATES.has(template_id):
+	if horde_active or is_mission_active() or not MissionData.TEMPLATES.has(template_id):
 		return false
 	if _in_cooldown(template_id):
 		return false
@@ -232,7 +236,49 @@ func abandon_mission() -> void:
 	_restore_ambient()
 	_reset_streak()
 	_cooldowns[str(mision.get("id", ""))] = _now_unix() + COOLDOWN_SECONDS
-	mission_abandoned.emit(mision)
+	mission_completed.emit(mision, {})
+
+
+## Resetea la racha actual. Publico: lo usa la horda y la muerte del jugador.
+func reset_streak() -> void:
+	_reset_streak()
+
+
+## Devuelve la racha actual (solo tests y HUD).
+func get_streak() -> int:
+	return current_streak
+
+
+## Devuelve la mejor racha (solo tests y HUD).
+func get_best_streak() -> int:
+	return best_streak
+
+
+## Inicia una horda en el coliseo: falso si ya hay una mision activa o una horda
+## en curso. La horda no pasa por MissionSystem._active: lleva su propio estado.
+func start_horde() -> bool:
+	if horde_active or is_mission_active():
+		return false
+	horde_active = true
+	return true
+
+
+## Registra una oleada superada en la horda: suma a la racha y paga una
+## recompensa pequena sin cooldown.
+func horde_wave_cleared(wave: int) -> void:
+	if not horde_active:
+		return
+	current_streak += 1
+	best_streak = maxi(best_streak, current_streak)
+	streak_changed.emit(current_streak, best_streak)
+	add_xp(10 + 2 * wave)
+	coins += 5 + 3 * wave
+	coins_changed.emit(coins)
+
+
+## Termina una horda en curso: desactiva el modo horda.
+func horde_run_ended() -> void:
+	horde_active = false
 
 
 ## Cura con un item del inventario. La sal sola no cura (no es consumible) y el
@@ -329,7 +375,7 @@ func gladius_damage_mult() -> float:
 
 ## Guardado de progresion: siete claves y NUNCA la mision activa (recargar a media
 ## mision la pierde, y eso es diseno). Los cooldowns van como tiempo unix absoluto:
-## sobreviven a la recarga y expiran aunque el juego esté cerrado.
+## sobreviven a la recarga y expiran aunque el juego estÃ© cerrado.
 func current_save() -> Dictionary:
 	return {
 		"version": SaveGame.VERSION,
